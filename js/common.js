@@ -1,4 +1,4 @@
-/* Shared helpers: theme toggle, review-style line numbers, lightbox, tooltips, small math. */
+/* Shared helpers: review-style line numbers, lightbox, tooltips, small math. */
 (function () {
   const U = (window.RW = window.RW || {});
   U.debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
@@ -11,7 +11,7 @@
   U.fmt = v => (Math.abs(v) >= 1000 ? v.toLocaleString("en-US") : Math.abs(v) >= 10 || v === 0 ? String(Math.round(v)) : String(+v.toFixed(2)));
   U.typeset = el => { const M = window.MathJax; if (M && M.typesetPromise) M.typesetPromise([el]).catch(() => {}); };
   U.css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  // theme tokens for canvas drawing, cached until the theme changes
+  // theme tokens for canvas drawing, cached
   let tokC = {};
   document.addEventListener("rw-theme", () => { tokC = {}; });
   U.tok = name => tokC[name] || (tokC[name] = U.css(name));
@@ -39,19 +39,6 @@
   U.tipHide = () => { tip().style.opacity = 0; };
 
   document.addEventListener("DOMContentLoaded", () => {
-    // theme
-    const btns = [...document.querySelectorAll(".theme-btn")], root = document.documentElement;
-    try { const t = localStorage.getItem("rw-theme"); if (t) root.dataset.theme = t; } catch (e) {}
-    const isDark = () => root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-    const label = () => btns.forEach(b => { b.textContent = isDark() ? "Light" : "Dark"; });
-    label();
-    btns.forEach(btn => btn.addEventListener("click", () => {
-      root.dataset.theme = isDark() ? "light" : "dark"; label();
-      try { localStorage.setItem("rw-theme", root.dataset.theme); } catch (e) {}
-      document.dispatchEvent(new Event("rw-theme"));
-    }));
-    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { label(); document.dispatchEvent(new Event("rw-theme")); });
-
     // ICLR review line numbers in the hero margin
     const g = document.getElementById("gutter");
     if (g) g.innerHTML = Array.from({ length: 24 }, (_, i) => `<span>${String(i).padStart(3, "0")}</span>`).join("");
