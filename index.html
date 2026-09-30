@@ -64,9 +64,9 @@
         <div class="chips-top"><span class="hot">ICLR 2027 · under review</span><span>Video world models</span><span>Physics audit</span><span>Inference acceleration</span></div>
         <h1><span class="mark">RoboWorM</span>: Evaluating Movement Realism, Consistency and Acceleration Affects in Embodied Video <u>Wor</u>ld <u>M</u>odels</h1>
         <p class="authors"><b>Anonymous authors</b> · Paper under double-blind review</p>
-        <p class="thesis">A generated robot video can look fine to a VLM judge and still show a forearm that stretched by 88&nbsp;mm. RoboWorM checks rollouts against what a deployment already knows: <em>the robot's kinematic tree</em> and <em>the fixed camera rig</em>.</p>
+        <p class="thesis">A generated robot video can look fine to a VLM judge and still show a forearm that stretched by 88&nbsp;mm, or a fixed camera that swings by 166°. RoboWorM checks rollouts against what a deployment already knows: <em>the robot's kinematic tree</em> and <em>the fixed camera rig</em>.</p>
         <div class="btns">
-          <a class="btn primary" href="#kiva"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 2.5v11l10-5.5z" stroke-linejoin="round"/></svg>Try KIVA on a rollout</a>
+          <a class="btn primary" href="#benchmark"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2.5v11M3.5 9 8 13.5 12.5 9" stroke-linecap="round" stroke-linejoin="round"/></svg>Explore the benchmark</a>
           <span class="btn" aria-disabled="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 1.5h5.5L12.5 4.5v10h-8.5z M9.5 1.5v3h3"/></svg>Paper <small>on acceptance</small></span>
           <span class="btn" aria-disabled="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5.5 4 2 8l3.5 4M10.5 4 14 8l-3.5 4"/></svg>Code <small>on acceptance</small></span>
           <span class="btn" aria-disabled="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="8" cy="4" rx="5.5" ry="2"/><path d="M2.5 4v8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2V4M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2"/></svg>Benchmark <small>on acceptance</small></span>
@@ -134,6 +134,7 @@
         <h3>(b) Physics audit</h3>
         <div class="stat-row">
           <div class="stat"><b>2</b><span>new metrics</span></div>
+          <div class="stat"><b>4</b><span>adapted metrics</span></div>
           <div class="stat"><b data-count="25.8" data-prefix="+" data-suffix="%" data-dec="1">+25.8%</b><span>hallucination detection vs. VLMs</span></div>
           <div class="stat"><b data-count="130" data-prefix="+" data-suffix="%">+130%</b><span>multi-view Spearman vs. VLMs</span></div>
         </div>
@@ -156,16 +157,14 @@
   <div class="wrap">
     <div class="sec-head"><span class="secno">Abstract</span><h2>Physics you can check without asking a VLM</h2></div>
     <div class="indent" style="margin-top:1.4rem">
-      <div class="cols-2">
-        <div class="prose abstract">
-          <p>Video world models (VWMs) are rapidly emerging as scalable neural simulators for robotic manipulation. However, most benchmarks only evaluate them as open-world video generators, using Vision-Language Models (VLMs) that lack strict 3D spatial and kinematic reasoning. To bridge this gap, we introduce <b>RoboWorM</b>, a comprehensive, <i>deployment-aware</i> benchmark that leverages known hardware priors such as robot kinematic trees and fixed camera configurations, to systematically examine structural and spatiotemporal fidelity. RoboWorM curates 1,605 real-world episodes across single-arm, bimanual, and humanoid morphologies, spanning both Markovian and long-horizon non-Markovian tasks under single- and multi-view setups.</p>
-          <p>To explicitly measure physical consistency, we propose two deterministic, VLM-free metrics: <b>KIVA</b> for intra-view kinematic stability, and <b>RIGIS</b> for multi-view geometric consistency. By exploiting intrinsic robotic invariants, KIVA improves hallucination detection alignment with human annotations by 25.8% relative to the strongest frontier VLMs, while RIGIS achieves a 130% higher Spearman correlation with human preferences. Furthermore, since real-world deployment requires low inference latency, we utilize RoboWorM to conduct the first large-scale audit of the quality-efficiency trade-off. Evaluating 9 state-of-the-art acceleration techniques across 3 leading world models (over 29,000 generated rollouts), we demonstrate how these acceleration methods can retain superficial visual quality while silently compromising deployment-critical physical constraints. Using our metrics, we achieve 2.3× maximum inference speed-up with minimal quality loss.</p>
-        </div>
-        <figure>
+        <figure class="abs-fig">
           <div class="figimg" data-zoom><img src="assets/fig/fig1.png" alt="Figure 1: overview of RoboWorM with dataset collection, physics audit and inference acceleration panels" loading="lazy"></div>
           <figcaption class="cap"><b>Figure 1.</b> (a) 1,600+ real-world episodes and 1,200+ prompts across 5 embodiments, 1–4 views and two task horizons. (b) Two deterministic, VLM-free metrics: KIVA for kinematic stability and RIGIS for 3D geometric consistency. (c) 3 world models × 9 acceleration methods, 29k rollouts. Click to enlarge.</figcaption>
         </figure>
-      </div>
+        <div class="prose abstract abs-cols">
+          <p>Video world models (VWMs) are rapidly emerging as scalable neural simulators for robotic manipulation. However, most benchmarks only evaluate them as open-world video generators, using Vision-Language Models (VLMs) that lack strict 3D spatial and kinematic reasoning. To bridge this gap, we introduce <b>RoboWorM</b>, a comprehensive, <i>deployment-aware</i> benchmark that leverages known hardware priors such as robot kinematic trees and fixed camera configurations, to systematically examine structural and spatiotemporal fidelity. RoboWorM curates 1,605 real-world episodes across single-arm, bimanual, and humanoid morphologies, spanning both Markovian and long-horizon non-Markovian tasks under single- and multi-view setups.</p>
+          <p>To explicitly measure physical consistency, we propose two deterministic, VLM-free metrics: <b>KIVA</b> for intra-view kinematic stability, and <b>RIGIS</b> for multi-view geometric consistency. By exploiting intrinsic robotic invariants, KIVA improves hallucination detection alignment with human annotations by 25.8% relative to the strongest frontier VLMs, while RIGIS achieves a 130% higher Spearman correlation with human preferences. Furthermore, since real-world deployment requires low inference latency, we utilize RoboWorM to conduct the first large-scale audit of the quality-efficiency trade-off. Evaluating 9 state-of-the-art acceleration techniques across 3 leading world models (over 29,000 generated rollouts), we demonstrate how these acceleration methods can retain superficial visual quality while silently compromising deployment-critical physical constraints. Using our metrics, we achieve 2.3× maximum inference speed-up with minimal quality loss.</p>
+        </div>
     </div>
   </div>
 </section>
