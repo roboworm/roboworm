@@ -1,8 +1,9 @@
-/* KIVA on real rollouts: the hero audit card and the five-stage lab share one sample
-   loader, one skeleton renderer and one segment timeline. */
+/* KIVA on real rollouts: the hero audit card and the step-by-step lab share one sample
+   loader and the per-frame measurements computed in prep(). */
 (function () {
   const U = window.RW;
   const SAMPLES = [
+    { id: "halluc_severe", label: "Bimanual, severe", group: "halluc" },
     { id: "halluc_bimanual", label: "Bimanual", group: "halluc" },
     { id: "halluc_humanoid", label: "Humanoid", group: "halluc" },
     { id: "halluc_single_arm", label: "Single-arm", group: "halluc" },
@@ -212,44 +213,6 @@
     return { st, draw, set(d) { st.d = d; }, size };
   }
 
-  /* ---------- attention overlay ---------- */
-  function Overlay(canvas) {
-    const ctx = canvas.getContext("2d");
-    const small = document.createElement("canvas"); const sctx = small.getContext("2d");
-    let w = 0, h = 0;
-    function size() {
-      const r = canvas.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
-      w = r.width; h = r.height; canvas.width = Math.max(1, w * dpr); canvas.height = Math.max(1, h * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-    new ResizeObserver(size).observe(canvas); size();
-    function heat(v) { // inferno-like
-      const s = [[0, 0, 4], [87, 16, 110], [188, 55, 84], [249, 142, 9], [252, 255, 164]];
-      const x = v * 4, i = Math.min(3, Math.floor(x)), u = x - i;
-      return s[i].map((c, j) => Math.round(c + (s[i + 1][j] - c) * u));
-    }
-    function draw(a, grid, alpha, showGrid) {
-      ctx.clearRect(0, 0, w, h);
-      if (alpha <= 0) return;
-      small.width = grid; small.height = grid;
-      const img = sctx.createImageData(grid, grid);
-      for (let i = 0; i < grid * grid; i++) {
-        const v = a[i] / 255, c = heat(v);
-        img.data[i * 4] = c[0]; img.data[i * 4 + 1] = c[1]; img.data[i * 4 + 2] = c[2];
-        img.data[i * 4 + 3] = Math.round(255 * Math.min(1, Math.pow(v, 1.4) * 1.15));
-      }
-      sctx.putImageData(img, 0, 0);
-      ctx.globalAlpha = alpha; ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
-      ctx.drawImage(small, 0, 0, w, h); ctx.globalAlpha = 1;
-      if (showGrid) {
-        ctx.strokeStyle = "rgba(255,255,255,.13)"; ctx.lineWidth = 1; ctx.beginPath();
-        for (let k = 1; k < grid; k++) { const x = k * w / grid, y = k * h / grid; ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.moveTo(0, y); ctx.lineTo(w, y); }
-        ctx.stroke();
-      }
-    }
-    return { draw };
-  }
-
   /* ---------- segment timeline ---------- */
   function timeline(svg, d, opts = {}) {
     const W = svg.clientWidth || 600, H = opts.h || 64, pad = { l: 34, r: 8, t: 6, b: 16 };
@@ -348,8 +311,8 @@
       setPh = timeline(f("tl"), d, {});
       verdicts(root, d); takeaway(f("take"), d);
     }
-    picker(f("picker"), show, "halluc_bimanual");
-    show("halluc_bimanual");
+    picker(f("picker"), show, "halluc_severe");
+    show("halluc_severe");
     addEventListener("resize", U.debounce(() => { if (d) setPh = timeline(f("tl"), d, {}); }, 150));
     let visible = true;
     new IntersectionObserver(es => { visible = es[0].isIntersecting; visible ? video.play().catch(() => {}) : video.pause(); }).observe(root);
@@ -367,179 +330,465 @@
     })();
   }
 
-  /* ---------- the lab ---------- */
-  const STAGES = [
-    { k: "read", t: "Read the pixels", c: "var(--kiva)",
-      h: "A frozen DINOv3 encoder turns each frame into tokens",
-      p: "The reader never sees robot state at test time. Its keypoint queries cross-attend to the 24×24 token grid of each frame; the heat map is where they look. It was trained only on real teleoperation, with forward-kinematics targets and a Huber loss.",
-      eq: "\\(\\mathbf{X}^{\\text{FK}} = \\text{FK}(\\mathbf{s}_{1:T}),\\quad \\hat{\\mathbf{x}}_0 = g_\\theta(\\mathbf{x}_t, t, \\mathcal{F})\\)",
-      plot: "End-effector path over the segment (mm, from frame 0)" },
-    { k: "denoise", t: "Denoise", c: "var(--kiva)",
-      h: "Several DDIM runs, one mean trajectory",
-      p: "Each run starts from its own Gaussian noise and denoises to a full 3-D trajectory. KIVA averages N = 5 runs and maps the mean back to metres; rigidity and jerk are measured on that mean. The runs differ by a few millimetres, so the animation enlarges their offsets.",
-      eq: "\\(\\mathbf{P} = \\mathcal{W}^{-1}\\Big(\\tfrac{1}{N}\\sum_{n=1}^{N} \\hat{\\mathbf{x}}_0^{(n)}\\Big)\\)",
-      plot: "How far the 5 runs sit from their mean (mm, median keypoint)" },
-    { k: "rig", t: "Rigidity", c: "var(--rig)",
-      h: "Links of a robot do not change length",
-      p: "Every rigid pair of keypoints has a known URDF length. Rigidity is the worst length error at each frame; the segment keeps the median. Bone color runs from green through yellow at the real-video threshold to red at twice it.",
-      eq: "\\(r_\\tau = \\lambda \\max_{(a,b)\\in\\mathcal{B}} \\big|\\,\\|\\mathbf{P}_{\\tau a}-\\mathbf{P}_{\\tau b}\\|_2 - L_{ab}\\big|,\\quad v^{\\text{rig}}_S = \\operatorname{median}_{\\tau\\in S} r_\\tau\\)",
-      plot: "Worst bone length error per frame (mm)" },
-    { k: "jerk", t: "Jerk", c: "var(--jerk)",
-      h: "Joints do not teleport between frames",
-      p: "Jerk is the third derivative of position, taken as a backward finite difference over four frames with weights −1, +3, −3, +1. The segment keeps the maximum over frames and keypoints.",
-      eq: "\\(j_\\tau = \\dfrac{\\lambda}{\\Delta t^3}\\max_k \\|\\mathbf{P}_{\\tau k} - 3\\mathbf{P}_{\\tau-1,k} + 3\\mathbf{P}_{\\tau-2,k} - \\mathbf{P}_{\\tau-3,k}\\|_2\\)",
-      plot: "Jerk per frame ÷ real-video threshold" },
-    { k: "cal", t: "Calibrate", c: "var(--stage-ink)",
-      h: "Measured against real footage of the same robot",
-      p: "The reader has a small error even on real video, so raw millimetres mean little. Each value is divided by its 95th percentile on real training clips; 1.0 is the top of real footage. Two cuts per embodiment, fitted on nine human-labelled videos, turn the score into low / medium / high.",
-      eq: "\\(s^d_S = v^d_S / \\theta^d,\\;\\; \\theta^d = Q_{0.95}\\{v^d_R\\},\\;\\; s_S = \\max_d s^d_S\\)",
-      plot: "Every segment of this rollout, scored" },
+  /* ---------- the lab: one frame held still, each KIVA step drawn over it ----------
+     A check runs the reader's steps on the frame at τ, then time advances a few frames and the
+     next check starts. The first check runs in full, later ones quickly, and the segment ends
+     with calibration. The side widgets fill in as frames are processed. */
+  const DK = { ink: "#e8eef6", ink2: "#a9b8c9", ink3: "#6f8196", grid: "rgba(255,255,255,.10)", kiva: "#38bdf8", good: "#3ddc84", amber: "#ffc233", bad: "#ff5a4f", jerk: "#ff8a50", panel: "rgba(8,12,17,.82)" };
+  const RUNC = ["#38bdf8", "#b388ff", "#ffb74d", "#69f0ae", "#f472b6"];
+  const rgbS = a => `rgb(${a.map(Math.round).join(",")})`;
+  const dkRamp = x => {
+    const v = Math.max(0, Math.min(2, x)), A = [61, 220, 132], B = [255, 194, 51], C = [255, 90, 79];
+    const [p, q, u] = v < 1 ? [A, B, v] : [B, C, v - 1];
+    return rgbS(p.map((c, i) => c + (q[i] - c) * u));
+  };
+  function heatRGB(v) { // inferno-like
+    const s = [[0, 0, 4], [87, 16, 110], [188, 55, 84], [249, 142, 9], [252, 255, 164]];
+    const x = Math.max(0, Math.min(1, v)) * 4, i = Math.min(3, Math.floor(x)), u = x - i;
+    return s[i].map((c, j) => Math.round(c + (s[i + 1][j] - c) * u));
+  }
+  const LSTEPS = [
+    { k: "tok", li: "Cut the frame into 24×24 patch tokens", eq: "\\(\\mathcal{F}_\\tau = \\mathrm{DINOv3}(I_\\tau)\\)" },
+    { k: "att", li: "Keypoint queries attend to the tokens", eq: "\\(\\hat{\\mathbf{x}}_0 = g_\\theta(\\mathbf{x}_t, t, \\mathcal{F})\\)" },
+    { k: "den", li: "Denoise five runs and keep their mean", eq: "\\(\\mathbf{P} = \\mathcal{W}^{-1}\\Big(\\tfrac{1}{N}\\sum_{n=1}^{N} \\hat{\\mathbf{x}}_0^{(n)}\\Big)\\)" },
+    { k: "rig", li: "Measure every bone against its URDF length", eq: "\\(r_\\tau = \\lambda \\max_{(a,b)\\in\\mathcal{B}} \\big|\\,\\|\\mathbf{P}_{\\tau a}-\\mathbf{P}_{\\tau b}\\|_2 - L_{ab}\\big|\\)" },
+    { k: "adv", li: "Advance, and run the jerk stencil along each trail", eq: "\\(j_\\tau = \\tfrac{\\lambda}{\\Delta t^3}\\max_k \\|\\mathbf{P}_{\\tau k} - 3\\mathbf{P}_{\\tau-1,k} + 3\\mathbf{P}_{\\tau-2,k} - \\mathbf{P}_{\\tau-3,k}\\|_2\\)" },
+    { k: "cal", li: "Divide by the real-footage p95 and read the band", eq: "\\(s^d_S = v^d_S / \\theta^d,\\;\\; \\theta^d = Q_{0.95}\\{v^d_R\\},\\;\\; s_S = \\max_d s^d_S\\)" },
   ];
+  const ORDER = LSTEPS.map(s => s.k);
+  const CHECKS = [0, 4, 8, 12];
+  const QUICK = 0.3, ADV_MS = 430, Q_MS = 300;
+  const ease = u => (u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2);
+  const cl = x => Math.max(0, Math.min(1, x));
+  const lerp = (a, b, t) => a + (b - a) * t;
 
   function lab() {
     const root = document.getElementById("kivaLab"); if (!root) return;
     const f = n => root.querySelector(`[data-f="${n}"]`);
-    const video = f("video"), sk = Skel(f("skel")), ov = Overlay(f("ov"));
-    const stepsEl = f("steps");
-    let d = null, stage = 0, playing = true, frame = 0, stageT0 = performance.now(), token = 0, visible = false;
-    stepsEl.innerHTML = STAGES.map((s, k) => `<button type="button" role="tab" aria-selected="${k === 0}" style="--c:${s.c}" data-k="${k}"><span class="i">${k + 1} / 5</span>${s.t}<span class="bar"></span></button>`).join("");
-    stepsEl.addEventListener("click", e => { const b = e.target.closest("button"); if (b) setStage(+b.dataset.k, true); });
-    let userPicked = false;
-    function setStage(k, user) {
-      stage = k; stageT0 = performance.now(); if (user) userPicked = true;
-      stepsEl.querySelectorAll("button").forEach((b, j) => b.setAttribute("aria-selected", j === k));
-      const s = STAGES[k];
-      f("h").textContent = s.h; f("p").textContent = s.p; f("eq").innerHTML = s.eq; f("plotT").textContent = s.plot;
-      U.typeset(f("eq"));
-      renderPlot(); renderChips();
-    }
-    async function show(id) {
-      const my = ++token; const s = finishSample(await load(id)); if (my !== token) return;
-      d = s; sk.set(d);
-      video.src = d.video; video.currentTime = (d.start + 0.5) / d.fps;
-      if (playing && visible) video.play().catch(() => {});
-      f("segname").textContent = `${d.segment.replace(".mp4", "")} · frames ${d.start}–${d.end}`;
-      takeaway(f("take"), d);
-      renderPlot(); renderChips();
-    }
-    picker(f("picker"), show, "halluc_bimanual");
+    const cv = f("cv"), ctx = cv.getContext("2d");
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const heatC = document.createElement("canvas"), hctx = heatC.getContext("2d");
+    let d = null, sprite = null, token = 0, W = 0, H = 0, visible = false;
+    let playing = !reduce, speed = 1;
+    const st = { c: 0, ph: "tok", t: 0, tau: 0 };
+    const view = { yaw: 0.6, el: 0.35, drag: null, auto: true };
 
-    f("play").addEventListener("click", () => {
-      playing = !playing;
-      f("play").innerHTML = playing ? '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" width="3" height="9"/><rect x="7" y="1.5" width="3" height="9"/></svg>' : '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2.5 1.5v9l8-4.5z"/></svg>';
-      f("play").setAttribute("aria-label", playing ? "Pause" : "Play");
-      playing ? video.play().catch(() => {}) : video.pause();
-    });
+    /* side panel scaffolding */
+    f("steps").innerHTML = LSTEPS.map((s, i) => `<li data-k="${s.k}"><span class="i">${i + 1}</span><span>${s.li}</span></li>`).join("");
+    f("steps").addEventListener("click", e => { const li = e.target.closest("li"); if (li && d) { st.ph = li.dataset.k; st.t = 0; if (st.ph === "cal") st.tau = 15; sync(); } });
+    U.seg(f("sp"), [0.5, 1, 2, 4].map(v => ({ k: String(v), t: v + "×" })), "1", k => { speed = +k; });
+    const PLAY = '<svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><path d="M2.5 1.5v9l8-4.5z"/></svg>Play';
+    const PAUSE = '<svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" width="3" height="9"/><rect x="7" y="1.5" width="3" height="9"/></svg>Pause';
+    const setPlay = p => { playing = p; f("play").innerHTML = p ? PAUSE : PLAY; f("play").classList.toggle("on", p); };
+    setPlay(playing);
+    f("play").addEventListener("click", () => setPlay(!playing));
+    f("next").addEventListener("click", () => { if (d) { st.t = dur(st.ph); step(0); } });
     f("scrub").addEventListener("input", e => {
-      if (playing) f("play").click();
-      frame = +e.target.value; if (d) video.currentTime = (d.start + frame + 0.5) / d.fps;
+      if (!d) return; setPlay(false);
+      st.tau = +e.target.value; st.c = CHECKS.filter(c => c <= st.tau).length - 1;
+      st.ph = "rig"; st.t = dur("rig"); sync();
     });
 
-    let setPh = null;
-    function renderChips() {
-      const c = f("chips"); if (!d) return;
-      const thr = d.rigidity_threshold_mm, cut = CUTS[d.robot];
-      const ch = [];
-      if (stage === 0) ch.push(`<span class="chip">${d.K} keypoints · ${d.T} frames · <b>${d.grid}×${d.grid}</b> tokens</span>`);
-      if (stage === 1) ch.push(`<span class="chip">N = <b>5</b> runs</span>`, `<span class="chip">median spread <b>${d.spreadMed.toFixed(1)} mm</b></span>`, `<span class="chip">θ<sub>rig</sub> <b>${thr.toFixed(1)} mm</b></span>`, `<span class="chip">offsets drawn <b>×${d.exag}</b></span>`);
-      if (stage === 2) ch.push(`<span class="chip">v<sub>rig</sub> = <b>${d.vRig.toFixed(1)} mm</b></span>`, `<span class="chip">θ<sub>rig</sub> = <b>${thr.toFixed(1)} mm</b></span>`, `<span class="chip">s<sub>rig</sub> = <b>${(d.vRig / thr).toFixed(2)}</b> re-read · <b>${d.segScore.rig.toFixed(2)}</b> stored</span>`);
-      if (stage === 3) ch.push(`<span class="chip">s<sub>jerk</sub> = <b>${(d.vJerk / d.jerk_threshold).toFixed(2)}</b> re-read · <b>${d.segScore.jerk.toFixed(2)}</b> stored</span>`, `<span class="chip">${d.robot === "single_arm" ? "counts toward the score" : "reported; this embodiment is scored on rigidity"}</span>`);
-      if (stage === 4) {
-        const b = band(d.kiva_ratio, d.robot);
-        ch.push(`<span class="chip">s<sub>S</sub> = <b>${d.kiva_ratio.toFixed(2)}</b></span>`, `<span class="chip">cuts γ = <b>${cut[0]} / ${cut[1]}</b></span>`, `<span class="chip">KIVA: <b style="color:var(--${b === "high" ? "bad" : b === "med" ? "med" : "good"})">${BAND_TXT[b]}</b></span>`, `<span class="chip">Human: <b>${d.human}</b></span>`, `<span class="chip">VLM ×3: <b>${d.vlm_runs.filter(v => v === "high").length > 1 ? "Hallucinated" : "Plausible"}</b></span>`);
-      }
-      c.innerHTML = ch.join("");
+    function size() {
+      const r = cv.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+      W = r.width; H = r.height; cv.width = Math.max(1, W * dpr); cv.height = Math.max(1, H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
-    function renderPlot() {
-      const svg = f("plot"); if (!d) return;
-      setPh = null;
-      if (stage === 4) { f("plotR").textContent = `${d.segments.length} segments`; setPh = timeline(svg, d, { h: 190 }); return; }
-      const W = svg.clientWidth || 520, H = 190, pad = { l: 44, r: 12, t: 12, b: 24 };
-      svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-      const xs = t => pad.l + (W - pad.l - pad.r) * t / (d.T - 1);
-      let series = [], lines = [], yMin = 0, yMax = 1, band_ = null, lab = "";
-      if (stage === 0) {
-        const k = d.jerkKey, o = d.mean5[0][k];
-        series = [0, 1, 2].map(ax => ({ c: ["var(--ax-x)", "var(--ax-y)", "var(--ax-z)"][ax], v: d.mean5.map(P => P[k][ax] - o[ax]), n: "xyz"[ax] }));
-        const all = series.flatMap(s => s.v); yMin = Math.min(...all, -5); yMax = Math.max(...all, 5); lab = "mm";
-        f("plotR").textContent = `keypoint ${k}`;
-      } else if (stage === 1) {
-        const thr = d.rigidity_threshold_mm;
-        series = [{ c: "var(--kiva)", v: d.spread, n: "spread" }]; yMin = 0; yMax = Math.max(thr, ...d.spread) * 1.18; lab = "mm";
-        lines = [{ y: thr, c: "var(--bad)", t: "θ rig, for scale" }];
-        f("plotR").textContent = `spread ≈ ${Math.round(d.spreadMed / thr * 100)}% of θ rig`;
-      } else if (stage === 2) {
-        const thr = d.rigidity_threshold_mm;
-        series = [{ c: "var(--rig)", v: d.worst, n: "worst bone" }];
-        yMin = 0; yMax = Math.max(thr * 1.5, ...d.worst) * 1.15; lab = "mm";
-        lines = [{ y: thr, c: "var(--bad)", t: "θ rig (real p95)" }, { y: d.vRig, c: "var(--rig)", t: "median", dash: "2 3" }];
-        band_ = [thr, yMax]; f("plotR").textContent = "";
-      } else if (stage === 3) {
-        const v = d.jerk.map(x => x == null ? null : x / d.jerk_threshold);
-        series = [{ c: "var(--jerk)", v, n: "jerk" }]; yMin = 0; yMax = Math.max(1.4, ...v.filter(x => x != null)) * 1.15; lab = "×θ";
-        lines = [{ y: 1, c: "var(--bad)", t: "real p95" }]; band_ = [1, yMax];
-        f("plotR").textContent = `needs τ ≥ 3`;
+    new ResizeObserver(size).observe(cv); size();
+    cv.addEventListener("pointerdown", e => { view.drag = [e.clientX, e.clientY, view.yaw, view.el]; view.auto = false; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener("pointermove", e => {
+      if (!view.drag) return;
+      view.yaw = view.drag[2] + (e.clientX - view.drag[0]) * 0.01;
+      view.el = Math.max(-0.2, Math.min(1.3, view.drag[3] + (e.clientY - view.drag[1]) * 0.008));
+    });
+    const up = () => { view.drag = null; setTimeout(() => { if (!view.drag) view.auto = true; }, 2500); };
+    cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+
+    /* ---------- timeline ---------- */
+    const detailed = () => st.c === 0;
+    const advTarget = () => Math.min(15, (CHECKS.find(c => c > st.tau) ?? 15));
+    function dur(ph) {
+      const q = detailed() ? 1 : QUICK;
+      if (ph === "tok") return 2600 * q;
+      if (ph === "att") return detailed() ? d.K * Q_MS + 1600 : 1500;
+      if (ph === "den") return 4600 * q;
+      if (ph === "rig") return detailed() ? 3800 : 1400;
+      if (ph === "adv") return Math.max(1, advTarget() - st.tau) * ADV_MS + 300;
+      return 6500; // cal
+    }
+    function step(dt) {
+      st.t += dt;
+      let guard = 0;
+      while (st.t >= dur(st.ph) && guard++ < 8) {
+        st.t -= dur(st.ph);
+        if (st.ph === "adv") {
+          st.tau = advTarget();
+          if (st.tau >= 15) st.ph = "cal";
+          else { st.c = CHECKS.indexOf(st.tau); st.ph = "tok"; }
+        } else if (st.ph === "cal") { st.c = 0; st.tau = 0; st.ph = "tok"; st.t = 0; }
+        else st.ph = ORDER[ORDER.indexOf(st.ph) + 1];
+        sync();
       }
-      const ys = v => pad.t + (H - pad.t - pad.b) * (1 - (v - yMin) / (yMax - yMin));
-      let s = "";
-      if (band_) s += `<rect x="${pad.l}" y="${ys(band_[1])}" width="${W - pad.l - pad.r}" height="${ys(band_[0]) - ys(band_[1])}" fill="var(--bad)" fill-opacity=".08"/>`;
-      const ticks = U.ticks(yMin, yMax, 4);
-      ticks.forEach(t => { s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${ys(t)}" y2="${ys(t)}" stroke="var(--stage-grid)"/><text x="${pad.l - 6}" y="${ys(t) + 3.5}" fill="var(--stage-ink-3)" font-size="10" text-anchor="end" font-family="IBM Plex Mono">${U.fmt(t)}</text>`; });
-      s += `<text x="${pad.l - 6}" y="${pad.t - 2}" fill="var(--stage-ink-3)" font-size="9.5" text-anchor="end" font-family="IBM Plex Sans">${lab}</text>`;
-      for (let t = 0; t < d.T; t += 3) s += `<text x="${xs(t)}" y="${H - 6}" fill="var(--stage-ink-3)" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">${t}</text>`;
-      lines.forEach(L => { s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${ys(L.y)}" y2="${ys(L.y)}" stroke="${L.c}" stroke-dasharray="${L.dash || "5 4"}" stroke-width="1.2"/><text x="${W - pad.r}" y="${ys(L.y) - 4}" fill="${L.c}" font-size="10" text-anchor="end" font-family="IBM Plex Sans">${L.t}</text>`; });
-      series.forEach(S => {
-        let p = "", on = false;
-        S.v.forEach((v, t) => { if (v == null) { on = false; return; } p += `${on ? "L" : "M"}${xs(t).toFixed(1)},${ys(v).toFixed(1)}`; on = true; });
-        s += `<path d="${p}" fill="none" stroke="${S.c}" stroke-width="2" stroke-linejoin="round"/>`;
-        S.v.forEach((v, t) => { if (v != null) s += `<circle data-t="${t}" cx="${xs(t)}" cy="${ys(v)}" r="2.4" fill="${S.c}"/>`; });
+    }
+    // τ on screen: during "adv" the frame walks forward
+    const tauShow = () => st.ph === "adv" ? Math.min(advTarget(), st.tau + Math.floor(st.t / ADV_MS) + (st.t > 0 ? 1 : 0)) : st.tau;
+    // the last frame whose bones have been measured
+    const measured = () => st.ph === "cal" ? 15 : ["tok", "att", "den"].includes(st.ph) ? st.tau - 1 : tauShow();
+
+    let lastPh = null;
+    function sync() {
+      if (st.ph !== lastPh) {
+        const i = ORDER.indexOf(st.ph);
+        f("steps").querySelectorAll("li").forEach((li, j) => { li.classList.toggle("on", j === i); li.classList.toggle("done", j < i); });
+        f("eq").innerHTML = LSTEPS[i].eq; U.typeset(f("eq"));
+        lastPh = st.ph;
+      }
+    }
+
+    /* ---------- loading ---------- */
+    async function show(id) {
+      const my = ++token;
+      f("phase").textContent = "Loading";
+      const [s, img] = await Promise.all([load(id).then(finishSample), new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = `assets/kiva/frames_${id}.jpg`; })]);
+      if (my !== token) return;
+      d = s; sprite = img;
+      if (!d.labPrep) labPrep(d);
+      takeaway(f("take"), d);
+      f("jl").textContent = d.robot === "single_arm" ? "Jerk ÷ real p95" : "Jerk ÷ real p95, reported only";
+      st.c = 0; st.tau = 0; st.ph = "tok"; st.t = 0; lastPh = null; sync();
+    }
+    function labPrep(d) {
+      d.labPrep = true;
+      const top = (a, n) => Array.from(a.keys()).sort((x, y) => a[y] - a[x]).slice(0, n);
+      d.topK = d.attnK.map(a => top(a, 5));
+      d.top1 = d.attnK.map(a => top(a, 1)[0]);
+      d.sRigRe = d.vRig / d.rigidity_threshold_mm;
+      d.sJerkRe = d.vJerk / d.jerk_threshold;
+      d.jRatio = d.jerk.map(v => v == null ? null : v / d.jerk_threshold);
+      d.worstJ = d.err.map(e => e.reduce((w, x, j) => Math.abs(x) > Math.abs(e[w]) ? j : w, 0));
+      d.sprite = { cols: 4, fw: 0, fh: 0 };
+    }
+    picker(f("picker"), show, "halluc_severe");
+
+    /* ---------- drawing helpers ---------- */
+    function contain(ar, x, y, w, h) { let fw = w, fh = w / ar; if (fh > h) { fh = h; fw = h * ar; } return { x: x + (w - fw) / 2, y: y + (h - fh) / 2, w: fw, h: fh }; }
+    const lerpR = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), w: lerp(a.w, b.w, t), h: lerp(a.h, b.h, t) });
+    function frame(i, R) {
+      const fw = sprite.width / 4, fh = sprite.height / 4;
+      ctx.drawImage(sprite, (i % 4) * fw, Math.floor(i / 4) * fh, fw, fh, R.x, R.y, R.w, R.h);
+    }
+    function heat(a, R, alpha) {
+      const g = d.grid; heatC.width = g; heatC.height = g;
+      const img = hctx.createImageData(g, g);
+      for (let i = 0; i < g * g; i++) {
+        const v = a[i] / 255, c = heatRGB(v);
+        img.data[i * 4] = c[0]; img.data[i * 4 + 1] = c[1]; img.data[i * 4 + 2] = c[2];
+        img.data[i * 4 + 3] = Math.round(255 * Math.min(1, Math.pow(v, 1.3) * 1.2));
+      }
+      hctx.putImageData(img, 0, 0);
+      ctx.save(); ctx.globalAlpha = alpha; ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(heatC, R.x, R.y, R.w, R.h); ctx.restore();
+    }
+    const tokXY = (i, R) => [R.x + ((i % d.grid) + 0.5) * R.w / d.grid, R.y + (Math.floor(i / d.grid) + 0.5) * R.h / d.grid];
+    function proj(p, S) {
+      const s = 0.58 * Math.min(S.w, S.h) / d.R;
+      const x = p[0] - d.center[0], y = p[1] - d.center[1], z = p[2] - d.center[2];
+      const cy = Math.cos(view.yaw), sy = Math.sin(view.yaw);
+      const xr = x * cy - y * sy, yr = x * sy + y * cy;
+      const v = z * Math.cos(view.el) - yr * Math.sin(view.el);
+      return [S.x + S.w / 2 + xr * s, S.y + S.h * 0.52 - v * s];
+    }
+    function seg(a, b, col, w, dash) { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.setLineDash([]); }
+    function dot(p, r, col, ring) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, 7); ctx.fill(); if (ring) { ctx.strokeStyle = ring; ctx.lineWidth = 1.2; ctx.stroke(); } }
+    function text(s, x, y, o = {}) {
+      ctx.font = o.font || "500 12px 'IBM Plex Sans', sans-serif"; ctx.textAlign = o.align || "left"; ctx.textBaseline = o.base || "alphabetic";
+      if (o.halo !== false) { ctx.strokeStyle = "rgba(0,0,0,.75)"; ctx.lineWidth = 3; ctx.lineJoin = "round"; ctx.strokeText(s, x, y); }
+      ctx.fillStyle = o.col || DK.ink; ctx.fillText(s, x, y);
+    }
+    function floor(S, alpha) {
+      const g = d.R * 1.1, z0 = d.zmin - d.R * 0.15;
+      ctx.globalAlpha = alpha;
+      for (let k = -4; k <= 4; k++) {
+        const t = k / 4 * g;
+        seg(proj([d.center[0] + t, d.center[1] - g, z0], S), proj([d.center[0] + t, d.center[1] + g, z0], S), DK.grid, 1);
+        seg(proj([d.center[0] - g, d.center[1] + t, z0], S), proj([d.center[0] + g, d.center[1] + t, z0], S), DK.grid, 1);
+      }
+      ctx.globalAlpha = 1;
+    }
+    // mean skeleton at frame i; boneCol(j) colors rigid bone j (null = neutral)
+    function skel(i, S, o = {}) {
+      const P = d.mean5[i], rigidSet = new Set(d.rigid.map(([a, b]) => a + "-" + b));
+      ctx.lineCap = "round";
+      d.drawn.forEach(([a, b]) => { if (!rigidSet.has(a + "-" + b)) seg(proj(P[a], S), proj(P[b], S), DK.ink3, 2); });
+      d.rigid.forEach(([a, b], j) => { const c = o.boneCol ? o.boneCol(j) : null; seg(proj(P[a], S), proj(P[b], S), c || DK.ink2, c && o.wide === j ? 5.5 : 3.2); });
+      P.forEach((p, k) => dot(proj(p, S), o.hi === k ? 6 : 3.2, o.hi === k ? DK.kiva : "#0d1116", o.hi === k ? "#fff" : DK.ink));
+    }
+
+    /* ---------- one frame of the stage ---------- */
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      if (!d || !sprite) return;
+      if (view.auto && !reduce && playing) view.yaw += 0.003 * speed;
+      const ph = st.ph, D = dur(ph), u = cl(st.t / D), det = detailed(), ts = tauShow();
+      const ar = d.width / d.height;
+      // the frame fills the stage for the first tokenization, then moves left to make room for the 3-D skeleton
+      const F0 = contain(ar, 16, 52, W - 32, H - 68), F1 = contain(ar, 16, 52, W * 0.57 - 24, H * 0.48);
+      const split = st.c === 0 && ph === "tok" && st.tau === 0 ? 0 : st.c === 0 && ph === "att" && st.tau === 0 ? ease(cl(st.t / 800)) : 1;
+      const F = lerpR(F0, F1, split);
+      const S = { x: W * 0.57, y: 44, w: W * 0.43 - 14, h: H - 60 };
+      const B = { x: 16, y: F1.y + F1.h + 22, w: W * 0.57 - 32, h: H - (F1.y + F1.h + 22) - 16 }; // panel under the frame
+      frame(ts, F);
+      const dimT = ph === "tok" ? 0.12 : ph === "att" ? 0.3 : ph === "cal" ? 0.6 : 0.45;
+      ctx.fillStyle = `rgba(8,12,17,${dimT})`; ctx.fillRect(F.x, F.y, F.w, F.h);
+      let pill = "", quick = !det && ph !== "adv" && ph !== "cal";
+
+      if (ph === "tok") {
+        const g = d.grid, n = Math.floor(cl(u * 1.6) * g);
+        ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 1; ctx.beginPath();
+        for (let k = 0; k <= n; k++) { const x = F.x + k * F.w / g, y = F.y + k * F.h / g; ctx.moveTo(x, F.y); ctx.lineTo(x, F.y + F.h * cl(u * 1.6)); ctx.moveTo(F.x, y); ctx.lineTo(F.x + F.w * cl(u * 1.6), y); }
+        ctx.stroke();
+        // a scan over the patches, row by row: each one becomes a token
+        const scan = Math.floor(cl((u - 0.45) / 0.5) * g * g);
+        if (u > 0.45) {
+          ctx.fillStyle = "rgba(56,189,248,.28)";
+          for (let i = 0; i < scan; i += 1) { if (i % g === 0 || i === scan - 1) { const r = Math.floor(i / g); ctx.fillRect(F.x, F.y + r * F.h / g, F.w * (r < Math.floor((scan - 1) / g) ? 1 : ((scan - 1) % g + 1) / g), F.h / g); } }
+          const [x, y] = tokXY(Math.max(0, scan - 1), F);
+          ctx.strokeStyle = DK.kiva; ctx.lineWidth = 2; ctx.strokeRect(x - F.w / g / 2, y - F.h / g / 2, F.w / g, F.h / g);
+        }
+        text(`${g} × ${g} = ${g * g} patch tokens`, F.x + 10, F.y + F.h - 12, { font: "600 13px 'IBM Plex Mono', monospace" });
+        text("frozen DINOv3 encodes each patch", F.x + F.w - 10, F.y + F.h - 12, { align: "right", col: DK.ink2 });
+        pill = "Patch tokens, 24 × 24";
+      }
+      if (ph !== "tok") floor(S, split * 0.6);
+      if (ph === "att") {
+        const perQ = det ? st.t < d.K * Q_MS : false, k = perQ ? Math.floor(st.t / Q_MS) : -1;
+        heat(k >= 0 ? d.attnK[k] : d.attnF[ts], F, 0.82);
+        ctx.strokeStyle = "rgba(255,255,255,.10)"; ctx.lineWidth = 1; ctx.beginPath();
+        for (let q = 1; q < d.grid; q++) { const x = F.x + q * F.w / d.grid, y = F.y + q * F.h / d.grid; ctx.moveTo(x, F.y); ctx.lineTo(x, F.y + F.h); ctx.moveTo(F.x, y); ctx.lineTo(F.x + F.w, y); }
+        ctx.stroke();
+        ctx.globalAlpha = split; skel(ts, S, { hi: k }); ctx.globalAlpha = 1;
+        const P = d.mean5[ts];
+        if (k >= 0) {
+          const a = d.attnK[k], dst = proj(P[k], S);
+          d.topK[k].forEach(i => { const p = tokXY(i, F); ctx.globalAlpha = 0.35 + 0.65 * a[i] / 255; seg(p, dst, DK.kiva, 0.8 + 2.2 * a[i] / 255); dot(p, 3, DK.kiva); });
+          ctx.globalAlpha = 1;
+          text(`query ${k + 1}`, dst[0] + 9, dst[1] - 8, { font: "600 12px 'IBM Plex Sans', sans-serif", col: DK.kiva });
+          pill = `Query ${k + 1} of ${d.K} attends`;
+        } else {
+          ctx.globalAlpha = 0.45 * split;
+          P.forEach((p, q) => seg(tokXY(d.top1[q], F), proj(p, S), DK.kiva, 1));
+          ctx.globalAlpha = 1;
+          pill = "All keypoint queries attend";
+        }
+        text("attention on the tokens", F.x + 10, F.y + F.h - 12, { col: DK.ink2 });
+        text("each query becomes a 3-D keypoint", S.x + S.w / 2, S.y + S.h - 6, { align: "center", col: DK.ink2 });
+      }
+      if (ph === "den") {
+        // 0-37% denoise from noise, 37-54% hold the five runs, 54-70% collapse onto the mean, then hold it
+        const noise = u < 0.37 ? (1 - u / 0.37) ** 1.3 : 0, merge = u < 0.54 ? 0 : u < 0.7 ? ease((u - 0.54) / 0.16) : 1;
+        runs(ts, S, noise, merge);
+        pill = u < 0.37 ? "Denoising, 5 runs from noise" : u < 0.54 ? "Five clean runs" : u < 0.7 ? "Averaging the runs" : "Mean of 5 runs";
+        // noise level of the runs, drawn as five bars under the frame
+        const bx = B.x, by = B.y + 18, bw = Math.min(B.w, 330);
+        text("noise level of each run", bx, B.y + 6, { col: DK.ink2, base: "middle" });
+        RUNC.forEach((c, n) => {
+          const y = by + n * 16;
+          ctx.fillStyle = "rgba(255,255,255,.08)"; ctx.fillRect(bx, y, bw - 70, 8);
+          ctx.fillStyle = c; ctx.fillRect(bx, y, (bw - 70) * noise, 8);
+          text(`run ${n + 1}`, bx + bw - 62, y + 8, { col: c, font: "500 11px 'IBM Plex Mono', monospace" });
+        });
+        if (merge > 0) text(`mean of 5 → P${merge >= 1 ? "" : "…"}`, bx, by + 5 * 16 + 14, { col: DK.ink, font: "600 12px 'IBM Plex Sans', sans-serif", base: "middle" });
+      }
+      if (ph === "rig" || ph === "adv" || ph === "cal") {
+        const i = ts, thr = d.rigidity_threshold_mm, nb = d.rigid.length;
+        // bones get measured one after another in the first check
+        const shown = ph === "rig" && det ? Math.floor(cl(u / 0.55) * nb + 0.001) : nb;
+        const wj = d.worstJ[i];
+        const col = j => j < shown ? dkRamp(Math.abs(d.err[i][j]) / thr) : null;
+        if (ph === "adv") trails(i, S);
+        skel(i, S, { boneCol: col, wide: shown >= nb ? wj : -1 });
+        if (ph === "rig" && det && shown < nb) {
+          const [a, b] = d.rigid[shown] || d.rigid[nb - 1], P = d.mean5[i];
+          const m = proj(P[a], S).map((v, t) => (v + proj(P[b], S)[t]) / 2);
+          ctx.strokeStyle = DK.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(m[0], m[1], 14, 0, 7); ctx.stroke();
+        }
+        if (shown >= nb) { urdf(i, wj, S, ph !== "adv"); ruler(i, wj, B, ph === "rig" && det ? ease(cl((u - 0.55) / 0.3)) : 1); }
+        pill = ph === "rig" ? (shown < nb ? `Measuring bone ${shown + 1} of ${nb}` : "Worst bone against its URDF length") : pill;
+        if (ph === "adv") {
+          if (i >= 3) stencil(i, S, { ...B, y: B.y + 118 });
+          pill = `Advancing to frame ${d.start + advTarget()}`;
+        }
+      }
+      if (ph === "cal") { verdictCard(u); pill = "Calibrating against real footage"; }
+
+      const pe = f("phase"); if (pe.textContent !== pill) pe.textContent = pill;
+      pe.classList.toggle("quick", quick);
+      f("badge").textContent = `frame ${d.start + ts}`;
+      f("t").textContent = `τ ${String(ts).padStart(2, " ")} / 15`;
+      if (+f("scrub").value !== ts) f("scrub").value = ts;
+      widgets(ts);
+    }
+
+    function runs(i, S, noise, merge) {
+      const M = d.avg[i];
+      const ab = Math.cos((noise + 0.008) / 1.008 * Math.PI / 2) ** 2, a = Math.sqrt(ab), b = Math.sqrt(1 - ab), sc = d.R * 0.9;
+      const off = d.exag * (1 - merge);
+      const P = d.draws.map((D, n) => D[i].map((p, k) => {
+        const m = M[k], e = d.eps[n][i][k];
+        return [0, 1, 2].map(j => { const v = m[j] + off * (p[j] - m[j]); return d.center[j] + a * (v - d.center[j]) + b * e[j] * sc; });
+      }));
+      const boneA = Math.max(0, 1 - noise / 0.3) * (1 - merge * 0.75);
+      P.forEach((Q, n) => {
+        if (boneA > 0) { ctx.globalAlpha = boneA; d.drawn.forEach(([x, y]) => seg(proj(Q[x], S), proj(Q[y], S), RUNC[n], 1.8)); }
+        ctx.globalAlpha = noise > 0.3 ? 0.9 : 0.95 * (1 - merge * 0.6);
+        Q.forEach(p => dot(proj(p, S), noise > 0.3 ? 2.4 : 2.8, RUNC[n]));
       });
-      if (stage === 0) s += `<text x="${pad.l + 6}" y="${pad.t + 10}" fill="var(--stage-ink-3)" font-size="10.5" font-weight="600" font-family="IBM Plex Sans"><tspan fill="var(--ax-x)">x</tspan> <tspan fill="var(--ax-y)">y</tspan> <tspan fill="var(--ax-z)">z</tspan></text>`;
-      s += `<line data-ph x1="0" x2="0" y1="${pad.t}" y2="${H - pad.b}" stroke="var(--stage-ink)" stroke-width="1" opacity=".6"/>`;
-      svg.innerHTML = s;
-      const ph = svg.querySelector("[data-ph]");
-      setPh = fr => { const t = Math.max(0, Math.min(d.T - 1, fr - d.start)); ph.setAttribute("x1", xs(t)); ph.setAttribute("x2", xs(t)); };
+      if (merge > 0) {
+        ctx.globalAlpha = merge;
+        d.drawn.forEach(([x, y]) => seg(proj(M[x], S), proj(M[y], S), DK.ink, 3.4));
+        M.forEach(p => dot(proj(p, S), 3.2, "#0d1116", DK.ink));
+      }
+      ctx.globalAlpha = 1;
+      if (merge < 1 && noise < 0.3) text(`offsets from the mean drawn ×${d.exag}`, S.x + S.w / 2, S.y + S.h - 6, { align: "center", col: DK.ink2 });
     }
-    addEventListener("resize", U.debounce(renderPlot, 150));
+    // the URDF length laid along the worst bone, and the part that should not be there
+    function urdf(i, j, S, label) {
+      const [a, b] = d.rigid[j], P = d.mean5[i], L = d.rest_mm[j], e = d.err[i][j];
+      const pa = P[a], pb = P[b], len = L + e, dir = [0, 1, 2].map(t => (pb[t] - pa[t]) / len);
+      const end = [0, 1, 2].map(t => pa[t] + dir[t] * L);
+      const A = proj(pa, S), E = proj(end, S), Bp = proj(pb, S);
+      seg(A, E, "rgba(232,238,246,.95)", 1.6, [5, 4]);
+      dot(E, 3.5, DK.ink);
+      const bad = Math.abs(e) > d.rigidity_threshold_mm;
+      const m = [(A[0] + Bp[0]) / 2, (A[1] + Bp[1]) / 2];
+      if (label) text(`${e > 0 ? "+" : "−"}${Math.abs(e).toFixed(0)} mm`, m[0] + 10, m[1] - 10, { font: "700 14px 'IBM Plex Sans', sans-serif", col: bad ? DK.bad : DK.good });
+    }
+    // flat ruler under the frame: URDF length, the ±θ band real footage stays in, and what the reader measured
+    function ruler(i, j, B, g) {
+      const [a, b] = d.rigid[j], L = d.rest_mm[j], e = d.err[i][j], thr = d.rigidity_threshold_mm, len = L + e;
+      const max = Math.max(len, L + 2 * thr) * 1.08, x0 = B.x, w = Math.min(B.w, 420), sx = v => x0 + w * v / max;
+      const y = B.y + 56;
+      text(`worst bone, keypoints ${a}–${b}`, x0, B.y + 8, { col: DK.ink2, base: "middle" });
+      ctx.fillStyle = "rgba(61,220,132,.22)"; ctx.fillRect(sx(L - thr), y - 16, sx(L + thr) - sx(L - thr), 40);
+      ctx.fillStyle = "rgba(255,255,255,.10)"; ctx.fillRect(sx(0), y, sx(L) - sx(0), 8);
+      ctx.fillStyle = dkRamp(Math.abs(e) / thr); ctx.fillRect(sx(0), y, (sx(len * g + L * (1 - g)) - sx(0)), 8);
+      seg([sx(L), y - 18], [sx(L), y + 26], DK.ink, 1.4, [4, 3]);
+      text(`URDF ${L.toFixed(0)} mm`, sx(L), y + 40, { align: "center", col: DK.ink, font: "500 11px 'IBM Plex Mono', monospace" });
+      text(`±θ = ${thr.toFixed(1)} mm (real p95)`, sx(L), y - 22, { align: "center", col: DK.good, font: "500 11px 'IBM Plex Mono', monospace" });
+      const mx = sx(len * g + L * (1 - g));
+      dot([mx, y + 4], 4, dkRamp(Math.abs(e) / thr));
+      if (g > 0.95) text(`measured ${len.toFixed(0)} mm`, Math.min(mx, x0 + w), y + 58, { align: len > L ? "right" : "left", col: dkRamp(Math.abs(e) / thr), font: "600 12px 'IBM Plex Mono', monospace" });
+    }
+    function trails(i, S) {
+      const M = d.mean5;
+      for (let k = 0; k < d.K; k++) {
+        const hot = k === d.jerkKey;
+        ctx.strokeStyle = hot ? DK.jerk : "rgba(169,184,201,.35)"; ctx.lineWidth = hot ? 2 : 1;
+        ctx.beginPath(); for (let t = 0; t <= i; t++) { const q = proj(M[t][k], S); t ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); } ctx.stroke();
+      }
+    }
+    // the four-frame stencil on the jerkiest keypoint's trail, and its arithmetic under the frame
+    function stencil(i, S, B) {
+      const k = d.jerkKey, Wt = [-1, 3, -3, 1], ts = [i - 3, i - 2, i - 1, i];
+      const pts = ts.map(t => proj(d.mean5[t][k], S));
+      seg(pts[0], pts[3], "rgba(255,138,80,.5)", 1, [3, 3]);
+      pts.forEach((q, n) => { dot(q, n === 3 ? 5.5 : 4, DK.jerk, "#fff"); text((Wt[n] > 0 ? "+" : "−") + Math.abs(Wt[n]), q[0] + 8, q[1] + (n % 2 ? 15 : -8), { col: DK.jerk, font: "600 12px 'IBM Plex Mono', monospace" }); });
+      const x0 = B.x, y = B.y + 8;
+      text(`jerk on keypoint ${k}, frames ${i - 3} to ${i}`, x0, y, { col: DK.ink2, base: "middle" });
+      const bw = 64;
+      ts.forEach((t, n) => {
+        const x = x0 + n * (bw + 10);
+        ctx.fillStyle = "rgba(255,138,80,.14)"; ctx.fillRect(x, y + 14, bw, 36);
+        text((Wt[n] > 0 ? "+" : "−") + Math.abs(Wt[n]), x + bw / 2, y + 30, { align: "center", col: DK.jerk, font: "700 13px 'IBM Plex Mono', monospace" });
+        text(`P(τ${t - i ? "−" + (i - t) : ""})`, x + bw / 2, y + 45, { align: "center", col: DK.ink2, font: "500 10.5px 'IBM Plex Mono', monospace" });
+      });
+      const r = d.jRatio[i];
+      text(`= ${r < 0.01 ? r.toExponential(1) : r.toFixed(2)} × θ`, x0 + 4 * (bw + 10) + 4, y + 36, { col: r > 1 ? DK.bad : DK.ink, font: "700 14px 'IBM Plex Mono', monospace", base: "middle" });
+      text("(divided by Δt³ and the real-video p95)", x0, y + 68, { col: DK.ink3, font: "400 11px 'IBM Plex Sans', sans-serif" });
+    }
+    function verdictCard(u) {
+      const w = Math.min(470, W - 60), h = 176, x = (W - w) / 2, y = (H - h) / 2;
+      ctx.fillStyle = DK.panel; ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(x, y, w, h, 12); ctx.fill(); ctx.stroke();
+      const thr = d.rigidity_threshold_mm, line = (n, s, col, font) => { if (u > n * 0.14) text(s, x + 20, y + 34 + n * 27, { col, font: font || "500 13.5px 'IBM Plex Mono', monospace", halo: false }); };
+      line(0, `median over 16 frames   ${d.vRig.toFixed(1)} mm`, DK.ink);
+      line(1, `÷ real-footage p95  θ = ${thr.toFixed(1)} mm`, DK.ink2);
+      if (d.robot === "single_arm") line(2, `rigidity ${d.sRigRe.toFixed(2)} · jerk ${d.sJerkRe.toFixed(2)} → max`, DK.ink);
+      else line(2, `= ${d.sRigRe.toFixed(2)} (this re-read)`, DK.ink);
+      line(3, `stored score s = ${d.kiva_ratio.toFixed(2)}, cuts ${CUTS[d.robot].join(" / ")}`, DK.ink);
+      if (u > 0.62) {
+        const b = band(d.kiva_ratio, d.robot), c = b === "high" ? DK.bad : b === "med" ? DK.amber : DK.good;
+        text(BAND_TXT[b], x + 20, y + h - 18, { col: c, font: "700 20px 'IBM Plex Sans', sans-serif", halo: false });
+        text(`human raters: ${d.human}`, x + w - 20, y + h - 20, { align: "right", col: DK.ink2, halo: false });
+      }
+    }
 
-    new IntersectionObserver(es => {
-      visible = es[0].isIntersecting;
-      if (visible && playing) video.play().catch(() => {}); else video.pause();
-    }, { threshold: 0.15 }).observe(root);
+    /* ---------- side widgets: they fill in as frames are measured ---------- */
+    let wKey = "";
+    function widgets(ts) {
+      const m = measured(), key = `${d.id}|${m}|${st.ph === "cal"}|${root.clientWidth}`;
+      if (key === wKey) return; wKey = key;
+      const thr = d.rigidity_threshold_mm, cut = CUTS[d.robot];
+      // worst bone error per frame
+      {
+        const svg = f("wr"), w = svg.clientWidth || 288, h = 96, p = { l: 30, r: 6, t: 8, b: 16 };
+        const ymax = Math.max(thr * 2, ...d.worst) * 1.1, xs = t => p.l + (w - p.l - p.r) * t / 15, ys = v => p.t + (h - p.t - p.b) * (1 - v / ymax);
+        let s = `<rect x="${p.l}" y="${ys(ymax)}" width="${w - p.l - p.r}" height="${ys(thr) - ys(ymax)}" fill="var(--bad)" fill-opacity=".07"/>`;
+        U.ticks(0, ymax, 3).forEach(t => { s += `<line x1="${p.l}" x2="${w - p.r}" y1="${ys(t)}" y2="${ys(t)}" stroke="var(--stage-grid)"/><text x="${p.l - 4}" y="${ys(t) + 3}" font-size="9.5" fill="var(--stage-ink-3)" text-anchor="end">${U.fmt(t)}</text>`; });
+        s += `<line x1="${p.l}" x2="${w - p.r}" y1="${ys(thr)}" y2="${ys(thr)}" stroke="var(--bad)" stroke-dasharray="4 3"/><text x="${w - p.r}" y="${ys(thr) - 3}" font-size="9.5" fill="var(--bad)" text-anchor="end">θ ${thr.toFixed(1)} mm</text>`;
+        let path = "";
+        for (let t = 0; t <= m; t++) { path += `${t ? "L" : "M"}${xs(t).toFixed(1)},${ys(d.worst[t]).toFixed(1)}`; }
+        if (m >= 0) s += `<path d="${path}" fill="none" stroke="var(--rig)" stroke-width="1.8"/>` + Array.from({ length: m + 1 }, (_, t) => `<circle cx="${xs(t)}" cy="${ys(d.worst[t])}" r="2.3" fill="var(--rig)"/>`).join("");
+        if (st.ph === "cal") s += `<line x1="${p.l}" x2="${w - p.r}" y1="${ys(d.vRig)}" y2="${ys(d.vRig)}" stroke="var(--stage-ink)" stroke-dasharray="2 3"/><text x="${p.l + 4}" y="${ys(d.vRig) - 4}" font-size="9.5" fill="var(--stage-ink)">median ${d.vRig.toFixed(0)} mm</text>`;
+        [0, 5, 10, 15].forEach(t => { s += `<text x="${xs(t)}" y="${h - 3}" font-size="9.5" fill="var(--stage-ink-3)" text-anchor="middle">${t}</text>`; });
+        svg.setAttribute("viewBox", `0 0 ${w} ${h}`); svg.style.height = h + "px"; svg.innerHTML = s;
+        f("rv").textContent = m >= 0 ? `${d.worst[m].toFixed(0)} mm · τ ${m}` : "–";
+      }
+      // jerk per frame over its threshold
+      {
+        const svg = f("wj"), w = svg.clientWidth || 288, h = 70, p = { l: 30, r: 6, t: 6, b: 16 };
+        const vals = d.jRatio.filter(v => v != null), ymax = Math.max(1.3, ...vals) * 1.1;
+        const xs = t => p.l + (w - p.l - p.r) * t / 15, ys = v => p.t + (h - p.t - p.b) * (1 - v / ymax), bw = (w - p.l - p.r) / 16 * 0.6;
+        let s = `<line x1="${p.l}" x2="${w - p.r}" y1="${ys(1)}" y2="${ys(1)}" stroke="var(--bad)" stroke-dasharray="4 3"/><text x="${w - p.r}" y="${ys(1) - 3}" font-size="9.5" fill="var(--bad)" text-anchor="end">real p95</text>`;
+        s += `<line x1="${p.l}" x2="${w - p.r}" y1="${ys(0)}" y2="${ys(0)}" stroke="var(--stage-line)"/><text x="${p.l - 4}" y="${ys(0) + 3}" font-size="9.5" fill="var(--stage-ink-3)" text-anchor="end">0</text><text x="${p.l - 4}" y="${ys(1) + 3}" font-size="9.5" fill="var(--stage-ink-3)" text-anchor="end">1</text>`;
+        let best = -1;
+        for (let t = 3; t <= m; t++) { const v = d.jRatio[t]; if (best < 0 || v > d.jRatio[best]) best = t; s += `<rect x="${xs(t) - bw / 2}" y="${ys(v)}" width="${bw}" height="${ys(0) - ys(v)}" fill="var(--jerk)" opacity=".85"/>`; }
+        if (best >= 0) s += `<rect x="${xs(best) - bw / 2 - 1.5}" y="${ys(d.jRatio[best]) - 1.5}" width="${bw + 3}" height="${ys(0) - ys(d.jRatio[best]) + 3}" fill="none" stroke="var(--stage-ink)" stroke-width="1.2"/>`;
+        s += `<text x="${p.l}" y="${h - 3}" font-size="9.5" fill="var(--stage-ink-3)">needs 4 frames: starts at τ 3</text>`;
+        svg.setAttribute("viewBox", `0 0 ${w} ${h}`); svg.style.height = h + "px"; svg.innerHTML = s;
+        f("jv").textContent = best >= 0 ? `max ${d.jRatio[best].toFixed(2)}` : "–";
+      }
+      // running score on the calibrated scale
+      {
+        const svg = f("ws"), w = svg.clientWidth || 288, h = 58, p = { l: 6, r: 10 };
+        const vals = d.worst.slice(0, Math.max(0, m + 1));
+        let sNow = vals.length ? U.median(vals) / thr : 0;
+        if (d.robot === "single_arm") { const j = d.jRatio.slice(3, m + 1).filter(v => v != null); if (j.length) sNow = Math.max(sNow, Math.max(...j)); }
+        const final = st.ph === "cal", s0 = final ? d.kiva_ratio : sNow;
+        const xmax = Math.max(cut[1] * 1.8, d.kiva_ratio * 1.12, d.sRigRe * 1.05), xs = v => p.l + (w - p.l - p.r) * Math.min(v, xmax) / xmax, y = 22;
+        let s = `<rect x="${xs(0)}" y="${y}" width="${xs(cut[0]) - xs(0)}" height="10" fill="var(--good-bg)"/><rect x="${xs(cut[0])}" y="${y}" width="${xs(cut[1]) - xs(cut[0])}" height="10" fill="var(--med-bg)"/><rect x="${xs(cut[1])}" y="${y}" width="${xs(xmax) - xs(cut[1])}" height="10" fill="var(--bad-bg)"/>`;
+        s += `<text x="${xs(cut[0])}" y="${y + 22}" font-size="9.5" fill="var(--stage-ink-3)" text-anchor="middle">γ₁ ${cut[0]}</text><text x="${xs(cut[1])}" y="${y + 22}" font-size="9.5" fill="var(--stage-ink-3)" text-anchor="${xs(cut[1]) - xs(cut[0]) < 36 ? "start" : "middle"}" dx="${xs(cut[1]) - xs(cut[0]) < 36 ? 4 : 0}">γ₂ ${cut[1]}</text>`;
+        if (m >= 0) {
+          const b = band(s0, d.robot), c = b === "high" ? "var(--bad)" : b === "med" ? "var(--med)" : "var(--good)";
+          s += `<line x1="${xs(s0)}" x2="${xs(s0)}" y1="${y - 6}" y2="${y + 16}" stroke="${c}" stroke-width="3"/><text x="${xs(s0)}" y="${y - 9}" font-size="10" font-weight="600" fill="${c}" text-anchor="${xs(s0) > w - 60 ? "end" : "middle"}">${final ? "stored" : "so far"} ${s0.toFixed(2)}</text>`;
+        }
+        svg.setAttribute("viewBox", `0 0 ${w} ${h}`); svg.style.height = h + "px"; svg.innerHTML = s;
+        const b = band(d.kiva_ratio, d.robot);
+        f("sv").innerHTML = final ? `<span style="color:var(--${b === "high" ? "bad" : b === "med" ? "med" : "good"})">${BAND_TXT[b]}</span>` : m >= 0 ? `${sNow.toFixed(2)} so far` : "–";
+      }
+    }
+    addEventListener("resize", U.debounce(() => { wKey = ""; }, 150));
 
-    const DWELL = [7000, 8400, 7000, 7000, 8000];
+    new IntersectionObserver(es => { visible = es[0].isIntersecting; }, { threshold: 0.1 }).observe(root);
+    let last = performance.now();
     (function loop(now) {
       requestAnimationFrame(loop);
-      if (!d || !visible) return;
-      let fr = Math.floor(video.currentTime * d.fps + 1e-3);
-      if (playing && (fr > d.end || fr < d.start)) { video.currentTime = (d.start + 0.1) / d.fps; fr = d.start; }
-      frame = Math.max(0, Math.min(15, fr - d.start));
-      f("scrub").value = frame; f("fr").textContent = `τ = ${String(frame).padStart(2, " ")}`;
-      const el = now - stageT0;
-      // auto-advance the tour until the viewer takes over
-      const bar = stepsEl.querySelectorAll(".bar")[stage];
-      if (!userPicked && playing) {
-        bar.style.width = Math.min(100, el / DWELL[stage] * 100) + "%";
-        if (el > DWELL[stage]) { bar.style.width = "0"; setStage((stage + 1) % 5); }
-      } else stepsEl.querySelectorAll(".bar").forEach(b => { b.style.width = "0"; });
-      const k = STAGES[stage].k;
-      ov.draw(d.attnF[frame], d.grid, k === "read" ? 0.72 : k === "denoise" ? 0.25 : 0, k === "read");
-      let o;
-      if (k === "read") o = { draws: false, skelAlpha: 0.9 };
-      else if (k === "denoise") {
-        // 0-2.8 s denoise, 2.8-4.1 s hold the five runs, 4.1-5.3 s collapse onto their mean, then hold the mean
-        const c = el % 7600, ease = u => u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2;
-        const noise = c < 2800 ? (1 - c / 2800) ** 1.3 : 0, merge = c < 4100 ? 0 : c < 5300 ? ease((c - 4100) / 1200) : 1;
-        const label = c < 2800 ? "Five DDIM runs, each from its own noise" : c < 4100 ? "Five clean trajectories" : c < 5300 ? "Average the runs" : "Mean of 5: the trajectory KIVA scores";
-        o = { runs: { noise, merge, mean: merge, label } };
-      } else if (k === "rig") o = { color: true, draws: true };
-      else if (k === "jerk") o = { jerk: true, skelAlpha: 0.5 };
-      else o = { color: true };
-      sk.draw(frame, o);
-      if (setPh) setPh(stage === 4 ? fr : fr);
-    })(performance.now());
-    setStage(0);
-    show("halluc_bimanual");
+      const dt = Math.min(100, now - last); last = now;
+      if (!visible || !d) return;
+      if (playing) step(dt * speed);
+      draw();
+    })(last);
+    show("halluc_severe");
   }
 
   document.addEventListener("DOMContentLoaded", () => { hero(); lab(); });

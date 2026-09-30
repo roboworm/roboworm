@@ -48,7 +48,7 @@
         box(250, 80, 190, 64, "World model", "wm", "autoregressive") +
         frames(520, 90, ["x̂ₜ₊₁", "x̂ₜ₊₂", "…", "x̂ₜ₊ₖ"], "Generated frames") +
         flow("M150,72 C200,72 205,100 250,104") + flow("M150,147 C200,147 205,124 250,120") + flow("M440,112 L520,112") +
-        flow("M800,140 C800,205 85,210 85,164", "x̂ₜ₊ₖ becomes the next input", true),
+        flow("M800,140 C800,205 85,210 85,164", "x̂ₜ₊ₖ becomes the next input", [440, 214]),
     },
     ctrl: {
       t: "Ctrl-World", d: "Spatio-temporal U-Net (Stable Diffusion, 1.5B) that generates synchronized views. A generalist policy reads the predicted views and emits the next N-step action chunk, with a memory of past frames: a policy-in-the-loop rollout.",
@@ -56,7 +56,7 @@
         box(120, 100, 226, 36, "Generalist policy", "wm") + box(500, 100, 170, 36, "World model", "wm") + box(700, 165, 110, 30, "Memory", "lt") +
         ["Pred 1", "Pred 2", "Pred 3"].map((v, i) => box(500 + i * 78, 30, 70, 30, v, "nv")).join("") +
         flow("M233,60 L233,100") + flow("M346,118 L500,118", "N-step action chunk") + flow("M585,100 L585,60") + flow("M700,180 C640,180 610,160 600,136") +
-        flow("M700,45 C860,45 860,210 420,210 C200,210 60,200 60,60", "rollout × N", true),
+        flow("M700,45 C860,45 860,210 420,210 C200,210 60,200 60,60", "rollout × N", [420, 225]),
     },
   };
   function box(x, y, w, h, t, kind, sub) {
@@ -74,9 +74,12 @@
         `<rect class="gf" style="animation-delay:${i * 0.35}s" x="${x + i * 66}" y="${y}" width="56" height="36" rx="4" fill="var(--data)"/><text x="${x + i * 66 + 28}" y="${y + 23}" text-anchor="middle" font-family="STIX Two Text, serif" font-size="14" fill="#fff">${l}</text>`).join("");
   }
   let flowN = 0;
-  function flow(d, label, loop) {
-    const id = "fl" + (flowN++);
-    const mid = label ? `<text font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--ink-3)" dy="-6"><textPath href="#${id}" startOffset="${loop ? "45%" : "20%"}">${label}</textPath></text>` : "";
+  // at = [x, y] marks a feedback loop; its label is set upright there, since the loop runs right to left
+  function flow(d, label, at) {
+    const id = "fl" + (flowN++), loop = !!at;
+    const mid = !label ? "" : loop
+      ? `<text x="${at[0]}" y="${at[1]}" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--audit)">${label}</text>`
+      : `<text font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--ink-3)" dy="-6"><textPath href="#${id}" startOffset="20%">${label}</textPath></text>`;
     return `<path id="${id}" d="${d}" fill="none" stroke="${loop ? "var(--audit)" : "var(--ink-3)"}" stroke-width="1.5" ${loop ? 'stroke-dasharray="5 4"' : ""} marker-end="url(#arr${loop ? "O" : ""})"/>${mid}
       <circle r="3.5" fill="${loop ? "var(--audit)" : "var(--kiva)"}"><animateMotion dur="${loop ? 3.6 : 1.8}s" repeatCount="indefinite" path="${d}"/></circle>`;
   }

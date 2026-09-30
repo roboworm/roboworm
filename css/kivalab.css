@@ -1,0 +1,4 @@
+/* KIVA lab: rules the shared .av- viewer contract in style.css does not cover */
+#kivaLab .av-steps li { font-size: 13px; }
+#kivaLab .av-eq { font-size: .84rem; }
+#kivaLab .picker button { white-space: nowrap; }
