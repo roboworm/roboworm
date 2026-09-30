@@ -161,38 +161,89 @@
   }
 
   /* ---------- RQ2 latency vs agreement ---------- */
+  // One row per judge. Left: share of videos scored the same across runs. Right: seconds per video
+  // second on a reversed log axis, so better is to the right in both columns. The replay shows each
+  // VLM zero-shot (ring), slides it to its chain-of-thought run (diamond), then drops in KIVA and RIGIS.
   function latency() {
     const svg = document.getElementById("latChart"); if (!svg) return;
-    function draw() {
-      const W = svg.clientWidth || 800, H = 300, pad = { l: 52, r: 20, t: 20, b: 44 };
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const AT = { rows: 0, cot: 900, cotDur: 1300, ours: 2500, oursDur: 700 }, END = 4000;
+    let t0 = null, raf = 0;
+    const ease = x => 1 - (1 - x) ** 3, cl = x => Math.max(0, Math.min(1, x));
+    function draw(t) {
+      const W = svg.clientWidth || 900, lab = 150, gap = 90, rh = 26, head = 30, blockGap = 18, top = 40;
+      const cw = (W - lab - gap - 24) / 2, ax = lab, bx = lab + cw + gap;
+      const xa = v => ax + cw * (v - 30) / 72;
+      const xb = v => bx + cw * (Math.log10(25) - Math.log10(v)) / (Math.log10(25) - Math.log10(0.2));
+      const tasks = [["physics", "kiva", "Embodied physics"], ["multiview", "rigis", "Multi-view"]];
+      const H = top + tasks.length * (head + 5 * rh + blockGap) + 18;
       svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.style.height = H + "px";
-      const lx = v => pad.l + (W - pad.l - pad.r) * (Math.log10(v) - Math.log10(0.2)) / (Math.log10(25) - Math.log10(0.2));
-      const ys = v => pad.t + (H - pad.t - pad.b) * (1 - (v - 30) / 72);
-      let s = "";
-      [0.2, 0.5, 1, 2, 5, 10, 20].forEach(t => { s += `<line x1="${lx(t)}" x2="${lx(t)}" y1="${pad.t}" y2="${H - pad.b}" stroke="var(--line)"/><text x="${lx(t)}" y="${H - pad.b + 16}" text-anchor="middle" font-size="11" fill="var(--ink-3)" font-family="IBM Plex Mono">${t}s</text>`; });
-      [40, 60, 80, 100].forEach(t => { s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${ys(t)}" y2="${ys(t)}" stroke="var(--line)" stroke-dasharray="2 3"/><text x="${pad.l - 8}" y="${ys(t) + 4}" text-anchor="end" font-size="11" fill="var(--ink-3)" font-family="IBM Plex Mono">${t}%</text>`; });
-      s += `<text x="${(W + pad.l) / 2}" y="${H - 6}" text-anchor="middle" font-size="12" fill="var(--ink-2)" font-family="IBM Plex Sans">latency per second of video (log) → slower</text>`;
-      s += `<text transform="translate(14 ${(H - pad.b + pad.t) / 2}) rotate(-90)" text-anchor="middle" font-size="12" fill="var(--ink-2)" font-family="IBM Plex Sans">same score across runs</text>`;
-      [["physics", "kiva"], ["multiview", "rigis"]].forEach(([task, col]) => {
-        const rows = D.latency[task];
-        rows.filter(r => r[1] === "zs").forEach(z => {
-          const c = rows.find(r => r[0] === z[0] && r[1] === "cot");
-          s += `<line x1="${lx(z[4])}" y1="${ys(z[2])}" x2="${lx(c[4])}" y2="${ys(c[2])}" stroke="${C(col)}" stroke-opacity=".35" stroke-width="1.2"/>`;
+      const T = (x, y, s, o = {}) => `<text x="${x}" y="${y}" text-anchor="${o.a || "start"}" font-size="${o.fs || 11.5}" font-weight="${o.fw || 400}" fill="${o.c || "var(--ink-2)"}" fill-opacity="${o.o == null ? 1 : o.o}" font-family="${o.ff || "IBM Plex Sans"}">${s}</text>`;
+      const rowsA = cl((t - AT.rows) / 600), cot = ease(cl((t - AT.cot) / AT.cotDur)), ours = cl((t - AT.ours) / AT.oursDur);
+      const y0 = top, y1 = H - 22;
+      // the better end of each column
+      let s = `<defs><linearGradient id="latBest" x1="0" x2="1"><stop offset="0" stop-color="var(--good)" stop-opacity="0"/><stop offset="1" stop-color="var(--good)" stop-opacity=".12"/></linearGradient></defs>`;
+      s += `<rect x="${xa(88)}" y="${y0}" width="${xa(102) - xa(88)}" height="${y1 - y0}" fill="url(#latBest)"/><rect x="${xb(0.6)}" y="${y0}" width="${xb(0.2) - xb(0.6)}" height="${y1 - y0}" fill="url(#latBest)"/>`;
+      s += T(ax, 16, "Same score across runs", { fw: 600, c: "var(--ink)" }) + T(ax + cw, 16, "more stable →", { a: "end", c: "var(--good)", fw: 600 });
+      s += T(bx, 16, "Seconds per video second (log)", { fw: 600, c: "var(--ink)" }) + T(bx + cw, 16, "faster →", { a: "end", c: "var(--good)", fw: 600 });
+      [40, 60, 80, 100].forEach(v => { s += `<line x1="${xa(v)}" x2="${xa(v)}" y1="${y0}" y2="${y1}" stroke="var(--line)"/>` + T(xa(v), H - 4, v + "%", { a: "middle", fs: 11, c: "var(--ink-3)", ff: "IBM Plex Mono" }); });
+      [20, 10, 5, 2, 1, 0.5, 0.2].forEach(v => { s += `<line x1="${xb(v)}" x2="${xb(v)}" y1="${y0}" y2="${y1}" stroke="var(--line)"/>` + T(xb(v), H - 4, v + "s", { a: "middle", fs: 11, c: "var(--ink-3)", ff: "IBM Plex Mono" }); });
+      let y = top;
+      tasks.forEach(([task, col, name]) => {
+        const rows = D.latency[task], c = C(col);
+        s += T(0, y + 18, name, { fw: 600, c, fs: 12.5 });
+        y += head;
+        const our = rows.find(r => r[1] === "ours"), vlms = rows.filter(r => r[1] === "zs").map(z => [z, rows.find(r => r[0] === z[0] && r[1] === "cot")]);
+        const line = cy => `<line x1="${ax}" x2="${W - 24}" y1="${cy}" y2="${cy}" stroke="var(--line)" stroke-opacity=".6"/>`;
+        // ours
+        let cy = y + rh / 2;
+        s += line(cy) + T(0, cy + 4, our[0].replace(" (ours)", ""), { fw: 700, c, o: 0.25 + 0.75 * ours });
+        if (ours > 0) {
+          const e = ease(ours), dy = (1 - e) * -26, pulse = cl((t - AT.ours - AT.oursDur) / 700);
+          const tip = esc(`${our[0]} · deterministic · ${our[4]} s`);
+          [xa(100), xb(our[4])].forEach(x => {
+            s += `<g data-tip="${tip}" opacity="${e}"><circle cx="${x}" cy="${cy + dy}" r="7" fill="${c}"/>`;
+            if (pulse > 0 && pulse < 1) s += `<circle cx="${x}" cy="${cy}" r="${7 + 16 * pulse}" fill="none" stroke="${c}" stroke-opacity="${1 - pulse}" stroke-width="2"/>`;
+            s += `</g>`;
+          });
+          s += T(xa(100) - 26, cy + 4, "100%", { a: "end", fw: 700, c, ff: "IBM Plex Mono", fs: 11, o: e });
+          s += T(xb(our[4]) - 26, cy + 4, our[4] + " s", { a: "end", fw: 700, c, ff: "IBM Plex Mono", fs: 11, o: e });
+        }
+        y += rh;
+        vlms.forEach(([z, k], n) => {
+          cy = y + rh / 2;
+          const ra = cl(rowsA * 5 - n * 0.8);
+          s += line(cy) + T(0, cy + 4, z[0], { o: ra });
+          const tip = esc(`${z[0]} · ${name.toLowerCase()}<br>zero-shot: ${z[2]}% same, ${z[4]} s<br>+ CoT: ${k[2]}% same, ${k[4]} s`);
+          [[xa(z[2]), xa(k[2])], [xb(z[4]), xb(k[4])]].forEach(([x0, x1]) => {
+            const x = x0 + (x1 - x0) * cot, dir = Math.sign(x1 - x0);
+            s += `<g data-tip="${tip}" opacity="${ra}">`;
+            if (cot > 0 && Math.abs(x - x0) > 12) s += `<line x1="${x0 + dir * 6}" x2="${x - dir * 7}" y1="${cy}" y2="${cy}" stroke="${c}" stroke-opacity=".45" stroke-width="2"/>`;
+            s += `<circle cx="${x0}" cy="${cy}" r="5" fill="var(--surface)" stroke="${c}" stroke-width="2" stroke-opacity="${cot > 0 ? 0.6 : 1}"/>`;
+            if (cot > 0) s += `<rect x="${x - 5}" y="${cy - 5}" width="10" height="10" transform="rotate(45 ${x} ${cy})" fill="${c}" opacity="${cl(cot * 3)}"/>`;
+            s += `</g>`;
+          });
+          y += rh;
         });
-        rows.forEach(r => {
-          const x = lx(r[4]), y = ys(r[2]);
-          const tip = `${r[0]}${r[1] === "cot" ? " + CoT" : r[1] === "zs" ? " (zero-shot)" : ""} · ${task === "physics" ? "embodied physics" : "multi-view"}<br>${r[1] === "ours" ? "deterministic" : r[2] + "% agreement, std " + r[3]} · ${r[4]} s`;
-          if (r[1] === "ours") s += `<g data-tip="${esc(tip)}"><circle cx="${x}" cy="${y}" r="9" fill="${C(col)}"/><circle cx="${x}" cy="${y}" r="14" fill="none" stroke="${C(col)}" stroke-opacity=".35"/><text x="${x + (task === "physics" ? -4 : 18)}" y="${y + (task === "physics" ? 32 : 5)}" text-anchor="${task === "physics" ? "middle" : "start"}" font-size="13" font-weight="600" fill="${C(col)}" font-family="IBM Plex Sans">${r[0].replace(" (ours)", "")} · ${r[4]} s</text></g>`;
-          else if (r[1] === "zs") s += `<circle data-tip="${esc(tip)}" cx="${x}" cy="${y}" r="5.5" fill="var(--surface)" stroke="${C(col)}" stroke-width="2"/>`;
-          else s += `<rect data-tip="${esc(tip)}" x="${x - 5}" y="${y - 5}" width="10" height="10" transform="rotate(45 ${x} ${y})" fill="${C(col)}"/>`;
-        });
+        y += blockGap;
       });
-      s += `<g font-family="IBM Plex Sans" font-size="11.5" fill="var(--ink-2)"><circle cx="${W - 290}" cy="${pad.t + 6}" r="5" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="2"/><text x="${W - 280}" y="${pad.t + 10}">VLM zero-shot</text>
-        <rect x="${W - 190}" y="${pad.t + 1}" width="9" height="9" transform="rotate(45 ${W - 185.5} ${pad.t + 5.5})" fill="var(--ink-2)"/><text x="${W - 176}" y="${pad.t + 10}">+ CoT</text>
-        <circle cx="${W - 120}" cy="${pad.t + 6}" r="5" fill="var(--kiva)"/><text x="${W - 110}" y="${pad.t + 10}">physics</text><circle cx="${W - 58}" cy="${pad.t + 6}" r="5" fill="var(--rigis)"/><text x="${W - 48}" y="${pad.t + 10}">multi-view</text></g>`;
+      const phase = t < AT.cot ? "VLM, zero-shot" : t < AT.ours ? "VLM + chain-of-thought" : "KIVA and RIGIS";
       svg.innerHTML = s;
+      const st = svg.parentNode.querySelector(".lat-step"); if (st) st.textContent = phase;
     }
-    draw(); addEventListener("resize", U.debounce(draw, 150));
+    function play() {
+      cancelAnimationFrame(raf); t0 = null;
+      if (reduce) { draw(END); return; }
+      const f = now => { if (t0 == null) t0 = now; const t = now - t0; draw(t); if (t < END) raf = requestAnimationFrame(f); };
+      raf = requestAnimationFrame(f);
+    }
+    draw(0);
+    const card = svg.parentNode;
+    card.insertAdjacentHTML("beforeend", `<div class="lat-bar"><span class="lat-step"></span><button type="button" class="lat-replay">Replay</button></div>`);
+    card.querySelector(".lat-replay").addEventListener("click", play);
+    let seen = false;
+    new IntersectionObserver(es => { if (es[0].isIntersecting && !seen) { seen = true; play(); } }, { threshold: 0.4 }).observe(svg);
+    addEventListener("resize", U.debounce(() => draw(t0 == null ? 0 : END), 150));
     tipHost(svg);
   }
   function tipHost(svg) {

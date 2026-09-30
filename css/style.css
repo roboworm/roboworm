@@ -559,3 +559,12 @@ details.sandbox > .cap { margin-top: .6rem; }
 .av-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .av-legend i { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
 .av-legend i.dot { width: 9px; height: 9px; border-radius: 50%; }
+/* RQ2 key */
+.cap .lk { display: inline-flex; align-items: center; gap: 6px; margin-right: 12px; }
+.cap .lk i { display: inline-block; width: 9px; height: 9px; }
+.cap .lk .ring { border: 2px solid var(--ink-2); border-radius: 50%; }
+.cap .lk .dia { background: var(--ink-2); transform: rotate(45deg); width: 8px; height: 8px; }
+.cap .lk .dot { background: var(--ink-2); border-radius: 50%; }
+.lat-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; font: 600 12.5px/1 var(--f-ui); color: var(--ink-2); }
+.lat-replay { font: 500 12px var(--f-ui); color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+.lat-replay:hover { color: var(--ink); border-color: var(--ink-3); }

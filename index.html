@@ -273,7 +273,7 @@
           <ol class="av-steps" data-f="steps"></ol>
           <div class="av-eq" data-f="eq"></div>
           <div class="av-w"><div class="av-lbl"><span>s(1)·s(2) per timestep</span> <b data-f="geoV">–</b></div><svg data-f="wGeo" height="64" role="img" aria-label="Agreement score per timestep"></svg></div>
-          <div class="av-w"><div class="av-lbl"><span>Camera 2 turn since the first timestep</span> <b data-f="rotV">–</b></div><svg data-f="wRot" height="64" role="img" aria-label="Camera 2 rotation per timestep"></svg></div>
+          <div class="av-w"><div class="av-lbl"><span>Camera 2 rotation</span> <b data-f="rotV">–</b></div><svg data-f="wRot" height="64" role="img" aria-label="Camera 2 rotation per timestep"></svg></div>
           <div class="av-w"><div class="av-lbl"><span>S among <span data-f="nPeers"></span> clips</span> <b data-f="sV">–</b></div><svg data-f="wS" height="34" role="img" aria-label="Rank among rated clips"></svg></div>
         </aside>
       </div>
@@ -282,7 +282,6 @@
         <span><i style="background:#b690e6"></i>Camera 1</span>
         <span><i style="background:#5ea9dc"></i>Camera 2</span>
         <span><i style="background:linear-gradient(90deg,#6fcf5f,#f5d547,#ff4d3d)"></i>Depth error where the views overlap</span>
-        <span>Full geometry is shown at three keyframes; other timesteps replay their logged scores.</span>
       </div>
       <div class="av-ctl">
         <button type="button" class="b on" data-f="play">Pause</button>
@@ -366,7 +365,7 @@
         <div class="q">RQ2 · Stability and cost</div>
         <h3>VLM verdicts drift between runs and slow down with chain-of-thought</h3>
         <div class="card chartcard"><svg id="latChart" role="img" aria-label="Latency per video second and run-to-run agreement"></svg></div>
-        <p class="cap">Table D3. Agreement is the share of videos scored identically across runs. KIVA and RIGIS are deterministic.</p>
+        <p class="cap"><span class="lk"><i class="ring"></i>VLM zero-shot</span> <span class="lk"><i class="dia"></i>+ chain-of-thought</span> <span class="lk"><i class="dot"></i>ours, deterministic</span> · Table D3.</p>
       </div>
     </div>
   </div>

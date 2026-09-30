@@ -7,15 +7,15 @@
   // take(d, pct, R): one-sentence reading of the clip; numbers come from the rerun
   const CLIPS = [
     { id: "00096", label: "Bimanual", tag: "VLM missed", bad: true,
-      take: (d, p, R) => `VGGT cannot find one steady pose for view 2: against view 1 it swings by up to <b>${Math.round(d.maxRot)}°</b> (σ<sub>R</sub> ${R.sigmaRdeg.toFixed(0)}°). RIGIS puts the clip in the <b>${p} percentile</b> of bimanual clips. <span class="ok">Human raters agree: bad.</span> <span class="no">Gemma rated it good in all 3 runs.</span>` },
+      take: (d, p, R) => `Camera 2 swings by up to <b>${Math.round(d.maxRot)}°</b> against camera 1. RIGIS: <b>${p} percentile</b>.` },
     { id: "00132", label: "Humanoid", tag: "VLM missed", bad: true,
-      take: (d, p, R) => `View 2 drifts by up to <b>${Math.round(d.maxRot)}°</b> against view 1, which pulls S<sub>pose</sub> down to ${R.pose.toFixed(2)}. RIGIS puts the clip in the <b>${p} percentile</b> of humanoid clips. <span class="ok">Human raters agree: bad.</span> <span class="no">Gemma rated it good, good and medium.</span>` },
+      take: (d, p, R) => `Camera 2 drifts by up to <b>${Math.round(d.maxRot)}°</b>, pulling S<sub>pose</sub> to ${R.pose.toFixed(2)}. RIGIS: <b>${p} percentile</b>.` },
     { id: "00278", label: "Single-arm", tag: "VLM false alarm", bad: false,
-      take: (d, p, R) => `The rig holds still (view 2 moves at most ${Math.round(d.maxRot)}°) and the views agree, so RIGIS puts the clip in the <b>${p} percentile</b> of single-arm clips. <span class="ok">Human raters agree: good.</span> <span class="no">Gemma rated it bad in all 3 runs.</span>` },
+      take: (d, p, R) => `The rig holds still (camera 2 moves ${Math.round(d.maxRot)}° at most) and the views agree. RIGIS: <b>${p} percentile</b>.` },
     { id: "00090", label: "Bimanual", tag: "clean", bad: false,
-      take: (d, p, R) => `View 2 moves at most ${Math.round(d.maxRot)}° and the views agree. RIGIS puts the clip in the <b>${p} percentile</b> of bimanual clips. <span class="ok">Human raters and Gemma agree: good.</span>` },
+      take: (d, p, R) => `Camera 2 moves ${Math.round(d.maxRot)}° at most and the views agree. RIGIS: <b>${p} percentile</b>.` },
     { id: "00195", label: "Humanoid", tag: "clean", bad: false,
-      take: (d, p, R) => `View 2 moves at most ${Math.round(d.maxRot)}° and S<sub>pose</sub> stays at ${R.pose.toFixed(2)}. RIGIS puts the clip in the <b>${p} percentile</b> of humanoid clips. <span class="ok">Human raters and Gemma agree: good.</span>` },
+      take: (d, p, R) => `Camera 2 moves ${Math.round(d.maxRot)}° at most and S<sub>pose</sub> stays at ${R.pose.toFixed(2)}. RIGIS: <b>${p} percentile</b>.` },
   ];
   const T = U.tok;
   const HB = { 1: ["bad", "Bad"], 2: ["med", "Medium"], 3: ["good", "Good"] };
@@ -46,8 +46,8 @@
       eq: String.raw`\(S = \tfrac12\big(S_{\text{geo}} + S_{\text{pose}}\big),\quad S_{\text{geo}} = \tfrac1T\textstyle\sum_\tau \prod_v s(v)\)` },
   ];
   const SI = Object.fromEntries(STEPS.map((s, i) => [s.ph, i]));
-  const KEY_MS = { depth: 1600, lift: 2400, reproj: 3200, agree: 1700, pose: 2000 };
-  const QUICK_MS = { agree: 520, pose: 280 };
+  const KEY_MS = { depth: 1600, lift: 2400, reproj: 3200, agree: 3600, pose: 2000 };
+  const QUICK_MS = { agree: 900, pose: 280 };
   const END_MS = 6500;
 
   const cache = {};
@@ -193,17 +193,67 @@
         ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.moveTo(c[0], c[1]); ctx.lineTo(e[0], e[1]); ctx.stroke();
       }
     }
-    function scoreChip(fr, vi, R) {
-      if (!fr.dX) return;
-      const txt = `Δₓ ${fr.dX[vi].toFixed(2)}  ·  Δ_D/d̃ ${(fr.dD[vi] / fr.dRef[vi]).toFixed(2)}  →  s(${vi + 1}) ${fr.s[vi].toFixed(3)}`;
-      ctx.font = `500 11.5px ${MONO}`; const w = ctx.measureText(txt).width + 16;
-      ctx.fillStyle = "rgba(6,10,16,.8)"; rr(R.x + 8, R.y + R.h - 30, w, 22, 5); ctx.fill();
-      ctx.fillStyle = vi ? C2 : C1; ctx.fillText(txt, R.x + 16, R.y + R.h - 15);
+    function label(txt, x, y, col, align, font) {
+      ctx.font = font || `500 11px ${SANS}`; ctx.fillStyle = col; ctx.textAlign = align || "left"; ctx.fillText(txt, x, y); ctx.textAlign = "left";
     }
-    function bigPill(txt, x, y, col) {
-      ctx.font = `600 14px ${MONO}`; const w = ctx.measureText(txt).width + 24;
-      ctx.fillStyle = col; rr(x - w / 2, y, w, 28, 14); ctx.fill();
-      ctx.fillStyle = "#0d1116"; ctx.textAlign = "center"; ctx.fillText(txt, x, y + 19); ctx.textAlign = "left";
+    function bar(x, y, w, len, col, a) {
+      ctx.globalAlpha = a * 0.5; ctx.fillStyle = "rgba(255,255,255,.12)"; rr(x, y, w, 12, 6); ctx.fill();
+      ctx.globalAlpha = a; ctx.fillStyle = col; rr(x, y, Math.max(12, w * len), 12, 6); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    // the per-timestep products so far, at the bottom of the 3-D panel; cur = draw this timestep's bar too
+    function strip(d, fr, G, cur) {
+      const F = d.scored, n = F.length, idx = F.indexOf(fr), v = F.map(f => f.prod);
+      const lo = Math.max(0, Math.min(...v) - 0.03), hi = Math.min(1, Math.max(...v) + 0.01);
+      const S = { x: G.x + 16, y: G.y + G.h - 62, w: G.w - 32, h: 44 }, sw = S.w / n;
+      const bh = x => 3 + (S.h - 3) * (x - lo) / (hi - lo);
+      ctx.fillStyle = "rgba(13,17,22,.85)"; rr(S.x - 8, S.y - 22, S.w + 16, S.h + 38, 6); ctx.fill();
+      label("s(1)·s(2) per timestep", S.x, S.y - 8, DIM);
+      F.forEach((f, i) => {
+        if (i > idx || (i === idx && !cur)) { ctx.fillStyle = "rgba(255,255,255,.08)"; ctx.fillRect(S.x + i * sw + 1, S.y + S.h - 2, sw - 2, 2); return; }
+        ctx.globalAlpha = i === idx ? 1 : 0.5; ctx.fillStyle = C1; ctx.fillRect(S.x + i * sw + 1, S.y + S.h - bh(f.prod), sw - 2, bh(f.prod)); ctx.globalAlpha = 1;
+      });
+      return { x: S.x + idx * sw + 1, y: S.y + S.h - bh(fr.prod), w: sw - 2, h: bh(fr.prod) };
+    }
+    // one timestep's score: color and depth agreement per view -> s(v) -> s(1)·s(2) -> into the strip.
+    // A logged (non-keyframe) timestep starts from the s(v) bars.
+    function scoreBuild(d, fr, L, u, quick) {
+      const G = L.G, U = quick ? 0.5 + 0.5 * u : u, cw = Math.min(G.w * 0.26, 220);
+      const grow = ease(clamp01(U / 0.26)), mrg = ease(clamp01((U - 0.3) / 0.16)), mid = ease(clamp01((U - 0.5) / 0.16));
+      const mul = ease(clamp01((U - 0.62) / 0.1)), drop = ease(clamp01((U - 0.76) / 0.2));
+      ctx.fillStyle = "rgba(18,25,37,.86)"; rr(G.x, G.y, G.w, G.h, 8); ctx.fill();
+      const slot = strip(d, fr, G, drop >= 1);
+      const y0 = G.y + 30, y1 = G.y + 56, yS = G.y + 92, yP = G.y + 112, xM = G.x + G.w / 2 - cw / 2;
+      [0, 1].forEach(v => {
+        const col = v ? C2 : C1, xL = G.x + G.w * (v ? 0.75 : 0.25) - cw / 2;
+        if (mrg < 1) {
+          const Rv = L.R[v], a = 1 - mrg;
+          ctx.globalAlpha = 0.5 * a * grow; ctx.strokeStyle = col; ctx.setLineDash([3, 4]); ctx.beginPath();
+          ctx.moveTo(Rv.x + Rv.w / 2, Rv.y + Rv.h); ctx.lineTo(xL + cw / 2, y0 - 12); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+          [[fr.sX[v], y0, "color"], [fr.sD[v], y1, "depth"]].forEach(([x, y, nm]) => {
+            bar(xL, lerp(y, yS, mrg), cw, lerp(x, fr.s[v], mrg) * grow, col, 0.85);
+            ctx.globalAlpha = a; label(nm, xL - 8, lerp(y, yS, mrg) + 10, DIM, "right");
+            label(x.toFixed(2), xL + cw + 8, lerp(y, yS, mrg) + 10, INK, "left", `500 11px ${MONO}`); ctx.globalAlpha = 1;
+          });
+        } else {
+          const x = lerp(xL, xM, mid), y = lerp(yS, v ? y1 : y0, mid), a = drop > 0 ? 1 - 0.6 * drop : 1;
+          bar(x, y, cw, fr.s[v], col, a);
+          ctx.globalAlpha = a; label(`s(${v + 1})`, x - 8, y + 10, col, "right", `600 11.5px ${MONO}`);
+          label(fr.s[v].toFixed(3), x + cw + 8, y + 10, INK, "left", `500 11px ${MONO}`); ctx.globalAlpha = 1;
+        }
+      });
+      if (mid <= 0) return;
+      ctx.globalAlpha = mid; label("×", xM - 44, y0 + 26, INK, "center", `600 16px ${MONO}`); ctx.globalAlpha = 1;
+      const len = lerp(fr.s[0], fr.prod, mul);
+      if (drop < 1) {
+        const from = { x: xM, y: yP + 14, w: cw * len, h: 14 };
+        const r = { x: lerp(from.x, slot.x, drop), y: lerp(from.y, slot.y, drop), w: lerp(from.w, slot.w, drop), h: lerp(from.h, slot.h, drop) };
+        ctx.globalAlpha = mid * 0.5; ctx.fillStyle = "rgba(255,255,255,.12)"; if (drop === 0) { rr(xM, yP + 14, cw, 14, 7); ctx.fill(); }
+        ctx.globalAlpha = mid; ctx.fillStyle = C1; rr(r.x, r.y, Math.max(r.w, 3), r.h, Math.min(7, r.w / 2)); ctx.fill(); ctx.globalAlpha = 1;
+      }
+      ctx.globalAlpha = mid * (1 - drop * 0.4);
+      label("=", xM - 44, yP + 26, INK, "center", `600 16px ${MONO}`);
+      label(len.toFixed(3), xM + cw + 8, yP + 26, INK, "left", `700 15px ${MONO}`);
+      ctx.globalAlpha = 1;
     }
 
     // points: 0 = in the image, 1 = in 3-D, 2 = in the other view's image
@@ -240,7 +290,6 @@
         ctx.fillStyle = "rgba(255,255,255,.08)"; rr(bx, y, bw, 14, 7); ctx.fill();
         ctx.fillStyle = col; rr(bx, y, Math.max(14, bw * v * ease(clamp01(a * 1.2))), 14, 7); ctx.fill();
         ctx.font = `500 13px ${MONO}`; ctx.fillStyle = INK; ctx.fillText(v.toFixed(3), bx + bw + 10, y + 12);
-        ctx.font = `400 11.5px ${SANS}`; ctx.fillStyle = DIM; ctx.fillText(note, bx, y + 30);
         if (i === 2 || i === 3) { ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.beginPath(); ctx.moveTo(bx - 70, y + 42); ctx.lineTo(bx + bw + 70, y + 42); ctx.stroke(); }
         ctx.globalAlpha = 1;
       });
@@ -254,8 +303,6 @@
       d.peers.forEach(v => { ctx.beginPath(); ctx.moveTo(sx(v), y0 + 5); ctx.lineTo(sx(v), y0 + 21); ctx.stroke(); });
       const m = clamp01((u - 0.72) / 0.12), mx = lerp(sx0 + sw / 2, sx(d.S), ease(m));
       ctx.strokeStyle = C1; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(mx, y0 - 8); ctx.lineTo(mx, y0 + 34); ctx.stroke();
-      ctx.font = `400 11.5px ${SANS}`; ctx.fillStyle = DIM;
-      ctx.fillText(`${d.peers.length} rated ${EMB[d.emb]} clips, split into tertiles`, sx0, y0 + 52);
       if (m >= 1) {
         const rb = d.pct < 1 / 3 ? HB[1] : d.pct >= 2 / 3 ? HB[3] : HB[2];
         ctx.font = `600 14px ${SANS}`; ctx.fillStyle = INK; ctx.textAlign = "center";
@@ -281,8 +328,6 @@
         ctx.fillStyle = "#121925"; rr(G.x, G.y, G.w, G.h, 8); ctx.fill();
         ctx.save(); rr(G.x, G.y, G.w, G.h, 8); ctx.clip();
         if (!k) {
-          ctx.font = `400 12.5px ${SANS}`; ctx.fillStyle = DIM; ctx.textAlign = "center";
-          ctx.fillText("The 3-D view appears at the first keyframe.", G.x + G.w / 2, G.y + G.h / 2); ctx.textAlign = "left";
         } else {
           floor(P, k);
           const camA = isKey && ph === "depth" ? u : 1;
@@ -293,9 +338,7 @@
             d.key.filter(o => o.tau <= fr.tau && o !== k).forEach(o => frustum(P, o.views[1], C2, 0.45, `τ = ${o.tau}`, [4, 4]));
           }
           frustum(P, k.views[0], C1, camA * (isKey ? 1 : 0.6), "camera 1");
-          frustum(P, k.views[1], C2, camA * (isKey ? 1 : 0.6), `camera 2${fr.k ? "" : ` at τ = ${k.tau}`}`);
-          ctx.font = `600 10.5px ${SANS}`; ctx.fillStyle = DIM;
-          ctx.fillText(fr.k ? "3-D, in camera 1's frame" : `3-D at the last keyframe, τ = ${k.tau}`, G.x + 12, G.y + 18);
+          frustum(P, k.views[1], C2, camA * (isKey ? 1 : 0.6), "camera 2");
         }
         ctx.restore();
 
@@ -315,20 +358,14 @@
             L.R.forEach((R, vi) => { view(fr, d, vi, R, lerp(0.55, 1, fade)); overlayPng(k.views[vi].resid, R, 0.7 * fade, 1); });
             legend(L.R[1], ["#6fcf5f", "#f5d547", "#ff4d3d"], "0", "≥ 20% depth error");
           }
-          if (fly < 1) { ctx.font = `500 11.5px ${SANS}`; ctx.fillStyle = INK; ctx.textAlign = "center"; ctx.fillText("each view's points, seen by the other camera", G.x + G.w / 2, G.y + G.h - 12); ctx.textAlign = "left"; }
         }
         if (isKey && (ph === "agree" || ph === "pose")) L.R.forEach((R, vi) => overlayPng(k.views[vi].resid, R, ph === "agree" ? 0.5 * (1 - u) : 0, 1));
-        if ((ph === "agree" || ph === "pose") && fr.prod != null) {
-          const a = ph === "agree" ? clamp01(u * (e.q ? 4 : 2.2)) : 1;
-          ctx.globalAlpha = a;
-          L.R.forEach((R, vi) => scoreChip(fr, vi, R));
-          bigPill(`s(1) · s(2) = ${fr.prod.toFixed(3)}`, G.x + G.w / 2, G.y + 10, INK);
-          ctx.globalAlpha = 1;
-        }
+        if (ph === "agree" && fr.prod != null) scoreBuild(d, fr, L, u, !!e.q);
+        if (ph === "pose" && fr.prod != null) strip(d, fr, G, true);
         if (ph === "pose" && fr.rotDeg[1] != null) {
           const a = clamp01(u * (e.q ? 5 : 2.5)), big = fr.rotDeg[1] > 10;
           ctx.globalAlpha = a;
-          tag(`camera 2 turned ${fr.rotDeg[1].toFixed(1)}° from τ = ${d.frames[0].tau}`, L.R[1].x + L.R[1].w - 8, L.R[1].y + 8, big ? "#ff8a7a" : C2, "right");
+          tag(`camera 2 ↻ ${fr.rotDeg[1].toFixed(1)}°`, L.R[1].x + L.R[1].w - 8, L.R[1].y + 8, big ? "#ff8a7a" : C2, "right");
           ctx.globalAlpha = 1;
         }
         L.R.forEach((R, vi) => tag(`view ${vi + 1}`, R.x + 8, R.y + 8, vi ? C2 : C1));
@@ -453,7 +490,7 @@
       f("rotV").textContent = lastRot != null ? `${lastRot.toFixed(1)}°` : "–";
       f("sV").textContent = e.ph === "combine" && u > 0.7 ? d.S.toFixed(3) : "–";
       const ph = f("phase");
-      ph.textContent = e.q ? `τ = ${fr.tau}: logged scores` : STEPS[step].pill;
+      ph.textContent = e.q ? `τ = ${fr.tau}` : STEPS[step].pill;
       ph.classList.toggle("quick", !!e.q);
       f("badge").textContent = `τ = ${fr.tau} · ${fr.t.toFixed(1)} s${fr.k ? " · keyframe" : ""}`;
       f("tt").textContent = `${e.i + 1} / ${d.frames.length} timesteps`;

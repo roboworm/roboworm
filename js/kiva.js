@@ -209,7 +209,7 @@
       let x = 10; const y = st.h - 14;
       cols.forEach((c, n) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x + 4, y - 4, 4, 0, 7); ctx.fill(); x += 12; });
       ctx.fillStyle = T("--stage-ink-3");
-      ctx.fillText(R.merge < 1 && R.noise < 0.3 ? `5 runs · offsets from the mean drawn ×${d.exag}` : R.mean >= 1 ? "5 runs → mean (dark)" : "5 runs", x + 4, y);
+      ctx.fillText(R.merge < 1 && R.noise < 0.3 ? `5 runs · offsets ×${d.exag}` : R.mean >= 1 ? "5 runs → mean (dark)" : "5 runs", x + 4, y);
     }
     return { st, draw, set(d) { st.d = d; }, size };
   }
@@ -273,13 +273,11 @@
     const nv = d.vlm_runs.filter(v => v === "high").length, vb = nv * 2 > d.vlm_runs.length ? "high" : "low";
     const nAgree = d.vlm_runs.filter(v => (v === "high") === (hb === "high")).length;
     const what = kb === "high"
-      ? (jerky ? `Joints jump between frames: jerk reaches <b>${r}×</b> the 95th percentile of real footage of this robot.`
-               : `Rigid links change length: the bone error reaches <b>${r}×</b> the 95th percentile of real footage of this robot.`)
-      : kb === "low" ? `Links hold their length and motion stays smooth: the segment scores <b>${r}×</b> the real-footage threshold, inside what real video shows.`
-      : `The segment sits between the two cuts at <b>${r}×</b> the real-footage threshold.`;
-    const k = kb === hb ? `<span class="ok">KIVA agrees with the human raters.</span>` : `<span class="no">KIVA disagrees with the human raters.</span>`;
-    const v = vb === hb ? `The VLM judge agrees in ${nAgree} of 3 runs.` : `<span class="no">The VLM judge calls it ${BAND_TXT[vb].toLowerCase()}</span> in ${3 - nAgree} of 3 runs.`;
-    el.innerHTML = `<span class="lbl">This clip</span><span class="txt">${what} ${k} ${v}</span>`;
+      ? (jerky ? `Joints jump between frames: <b>${r}×</b> the real-video limit.` : `Rigid links change length: <b>${r}×</b> the real-video limit.`)
+      : kb === "low" ? `Links hold their length: <b>${r}×</b> the real-video limit.`
+      : `Borderline: <b>${r}×</b> the real-video limit.`;
+    const v = vb === hb ? "" : ` <span class="no">VLM: ${BAND_TXT[vb].toLowerCase()}, ${3 - nAgree}/3 runs.</span>`;
+    el.innerHTML = `<span class="lbl">This clip</span><span class="txt">${what}${v}</span>`;
   }
 
   function picker(root, onPick, current) {
@@ -358,7 +356,7 @@
   ];
   const ORDER = LSTEPS.map(s => s.k);
   const CHECKS = [0, 4, 8, 12];
-  const QUICK = 0.3, ADV_MS = 430, Q_MS = 300;
+  const QUICK = 0.3, ADV_MS = 430, Q_MS = 420, SWAY = 0.25;
   const ease = u => (u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2);
   const cl = x => Math.max(0, Math.min(1, x));
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -371,8 +369,8 @@
     const heatC = document.createElement("canvas"), hctx = heatC.getContext("2d");
     let d = null, sprite = null, token = 0, W = 0, H = 0, visible = false;
     let playing = !reduce, speed = 1;
-    const st = { c: 0, ph: "tok", t: 0, tau: 0 };
-    const view = { yaw: 0.6, el: 0.35, drag: null, auto: true };
+    const st = { c: 0, ph: "tok", t: 0, tau: 0, clk: 0 };
+    const view = { yaw: 0.6, el: 0.5, base: 0.6, sw: 0, drag: null, auto: true };
 
     /* side panel scaffolding */
     f("steps").innerHTML = LSTEPS.map((s, i) => `<li data-k="${s.k}"><span class="i">${i + 1}</span><span>${s.li}</span></li>`).join("");
@@ -402,7 +400,7 @@
       view.yaw = view.drag[2] + (e.clientX - view.drag[0]) * 0.01;
       view.el = Math.max(-0.2, Math.min(1.3, view.drag[3] + (e.clientY - view.drag[1]) * 0.008));
     });
-    const up = () => { view.drag = null; setTimeout(() => { if (!view.drag) view.auto = true; }, 2500); };
+    const up = () => { view.drag = null; setTimeout(() => { if (!view.drag) { view.base = view.yaw; view.sw = 0; view.auto = true; } }, 2500); };
     cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
 
     /* ---------- timeline ---------- */
@@ -411,14 +409,14 @@
     function dur(ph) {
       const q = detailed() ? 1 : QUICK;
       if (ph === "tok") return 2600 * q;
-      if (ph === "att") return detailed() ? d.K * Q_MS + 1600 : 1500;
+      if (ph === "att") return detailed() ? d.K * Q_MS + 2600 : 1800;
       if (ph === "den") return 4600 * q;
       if (ph === "rig") return detailed() ? 3800 : 1400;
       if (ph === "adv") return Math.max(1, advTarget() - st.tau) * ADV_MS + 300;
       return 6500; // cal
     }
     function step(dt) {
-      st.t += dt;
+      st.t += dt; st.clk += dt;
       let guard = 0;
       while (st.t >= dur(st.ph) && guard++ < 8) {
         st.t -= dur(st.ph);
@@ -454,6 +452,7 @@
       if (my !== token) return;
       d = s; sprite = img;
       if (!d.labPrep) labPrep(d);
+      view.yaw = view.base = d.fitYaw; view.el = d.fitEl; view.sw = 0;
       takeaway(f("take"), d);
       f("jl").textContent = d.robot === "single_arm" ? "Jerk ÷ real p95" : "Jerk ÷ real p95, reported only";
       st.c = 0; st.tau = 0; st.ph = "tok"; st.t = 0; lastPh = null; sync();
@@ -463,11 +462,42 @@
       const top = (a, n) => Array.from(a.keys()).sort((x, y) => a[y] - a[x]).slice(0, n);
       d.topK = d.attnK.map(a => top(a, 5));
       d.top1 = d.attnK.map(a => top(a, 1)[0]);
+      // where each query looks: weighted centre of the cells around its peak, in frame units
+      d.hot = d.attnK.map((a, k) => {
+        const g = d.grid, m = d.top1[k], mx = m % g, my = Math.floor(m / g);
+        let sx = 0, sy = 0, sw = 0;
+        for (let y = Math.max(0, my - 2); y <= Math.min(g - 1, my + 2); y++) for (let x = Math.max(0, mx - 2); x <= Math.min(g - 1, mx + 2); x++) {
+          const w = (a[y * g + x] / 255) ** 4; sx += w * (x + 0.5); sy += w * (y + 0.5); sw += w;
+        }
+        return [sx / sw / g, sy / sw / g];
+      });
+      const km = Math.max(...(d.kp_mm || [1]));
+      d.kpW = d.attnK.map((_, k) => d.kp_mm ? d.kp_mm[k] / km : 1);
       d.sRigRe = d.vRig / d.rigidity_threshold_mm;
       d.sJerkRe = d.vJerk / d.jerk_threshold;
       d.jRatio = d.jerk.map(v => v == null ? null : v / d.jerk_threshold);
       d.worstJ = d.err.map(e => e.reduce((w, x, j) => Math.abs(x) > Math.abs(e[w]) ? j : w, 0));
       d.sprite = { cols: 4, fw: 0, fh: 0 };
+      // viewing angle whose 2-D layout of the keypoints best matches where the queries look on the frame
+      // (least squares up to scale and shift), so the 3-D panel reads like the camera view
+      const ar = d.width / d.height, live = d.kpW.map(w => w >= 0.4), mid = d.mean5[d.mean5.length >> 1];
+      const Hs = d.hot.map(h => [h[0] * ar, h[1]]).filter((_, k) => live[k]);
+      const scr = (p, yaw, el) => { const x = p[0] - d.center[0], y = p[1] - d.center[1], z = p[2] - d.center[2], c = Math.cos(yaw), sn = Math.sin(yaw);
+        return [x * c - y * sn, -(z * Math.cos(el) - (x * sn + y * c) * Math.sin(el))]; };
+      const cen = A => { const m = [0, 1].map(j => A.reduce((a, p) => a + p[j], 0) / A.length); return A.map(p => [p[0] - m[0], p[1] - m[1]]); };
+      const Hc = cen(Hs), hh2 = Hc.reduce((a, p) => a + p[0] ** 2 + p[1] ** 2, 0);
+      let best = [Infinity, 0.6, 0.5];
+      if (Hs.length >= 3) for (let yaw = 0; yaw < 6.28; yaw += 0.05) for (let el = 0.25; el <= 1.2; el += 0.05) {
+        const Q = cen(mid.filter((_, k) => live[k]).map(p => scr(p, yaw, el)));
+        let qh = 0, qq = 0; Q.forEach((q, i) => { qh += q[0] * Hc[i][0] + q[1] * Hc[i][1]; qq += q[0] ** 2 + q[1] ** 2; });
+        const res = qh > 0 ? 1 - qh * qh / (qq * hh2) : 1;
+        if (res < best[0]) best = [res, yaw, el];
+      }
+      d.fitYaw = best[1]; d.fitEl = best[2]; d.fitRes = best[0];
+      // half extents on screen over the sway around that angle, so the skeleton is drawn as large as the panel allows
+      let hw = 1, hh = 1;
+      for (let a = -SWAY; a <= SWAY + 1e-6; a += SWAY / 4) d.mean5.forEach(P => P.forEach(p => { const q = scr(p, d.fitYaw + a, d.fitEl); hw = Math.max(hw, Math.abs(q[0])); hh = Math.max(hh, Math.abs(q[1])); }));
+      d.fitW = hw; d.fitH = hh;
     }
     picker(f("picker"), show, "halluc_severe");
 
@@ -492,12 +522,12 @@
     }
     const tokXY = (i, R) => [R.x + ((i % d.grid) + 0.5) * R.w / d.grid, R.y + (Math.floor(i / d.grid) + 0.5) * R.h / d.grid];
     function proj(p, S) {
-      const s = 0.58 * Math.min(S.w, S.h) / d.R;
+      const s = S.sc;
       const x = p[0] - d.center[0], y = p[1] - d.center[1], z = p[2] - d.center[2];
       const cy = Math.cos(view.yaw), sy = Math.sin(view.yaw);
       const xr = x * cy - y * sy, yr = x * sy + y * cy;
       const v = z * Math.cos(view.el) - yr * Math.sin(view.el);
-      return [S.x + S.w / 2 + xr * s, S.y + S.h * 0.52 - v * s];
+      return [S.cx + xr * s, S.cy - v * s];
     }
     function seg(a, b, col, w, dash) { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.setLineDash([]); }
     function dot(p, r, col, ring) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, 7); ctx.fill(); if (ring) { ctx.strokeStyle = ring; ctx.lineWidth = 1.2; ctx.stroke(); } }
@@ -507,12 +537,32 @@
       ctx.fillStyle = o.col || DK.ink; ctx.fillText(s, x, y);
     }
     function floor(S, alpha) {
-      const g = d.R * 1.1, z0 = d.zmin - d.R * 0.15;
-      ctx.globalAlpha = alpha;
+      const g = Math.min(d.R * 0.9, d.fitW * 1.05), z0 = d.zmin - d.R * 0.04, c = d.center;
+      ctx.save(); ctx.beginPath(); ctx.rect(S.x, S.y, S.w, S.h); ctx.clip();
       for (let k = -4; k <= 4; k++) {
         const t = k / 4 * g;
-        seg(proj([d.center[0] + t, d.center[1] - g, z0], S), proj([d.center[0] + t, d.center[1] + g, z0], S), DK.grid, 1);
-        seg(proj([d.center[0] - g, d.center[1] + t, z0], S), proj([d.center[0] + g, d.center[1] + t, z0], S), DK.grid, 1);
+        ctx.globalAlpha = alpha * (1 - Math.abs(k) / 5);
+        seg(proj([c[0] + t, c[1] - g, z0], S), proj([c[0] + t, c[1] + g, z0], S), DK.grid, 1);
+        seg(proj([c[0] - g, c[1] + t, z0], S), proj([c[0] + g, c[1] + t, z0], S), DK.grid, 1);
+      }
+      ctx.restore();
+    }
+    // a cubic from a patch on the frame to a keypoint in the 3-D panel; every curve funnels through the gap between them
+    function fiber(h, p, F) {
+      const X = F.x + F.w, Ym = F.y + F.h / 2, gx = p[0] - X;
+      return [h, [Math.max(h[0] + 40, X + gx * 0.22), lerp(h[1], Ym, 0.75)], [X + gx * 0.62, p[1]], p];
+    }
+    const bez = (C, t) => { const m = 1 - t; return [0, 1].map(j => m * m * m * C[0][j] + 3 * m * m * t * C[1][j] + 3 * m * t * t * C[2][j] + t * t * t * C[3][j]); };
+    function curve(C, t1, col, w, a) {
+      ctx.globalAlpha = a; ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath();
+      const n = Math.max(2, Math.ceil(40 * t1));
+      for (let i = 0; i <= n; i++) { const q = bez(C, t1 * i / n); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }
+      ctx.stroke(); ctx.globalAlpha = 1;
+    }
+    function flow(C, seed, a) {
+      for (let j = 0; j < 3; j++) {
+        const t = (st.clk / 1400 + seed * 0.37 + j / 3) % 1, q = bez(C, t);
+        ctx.globalAlpha = a * Math.sin(Math.PI * t); dot(q, 2.2, "#bfe9ff");
       }
       ctx.globalAlpha = 1;
     }
@@ -521,22 +571,23 @@
       const P = d.mean5[i], rigidSet = new Set(d.rigid.map(([a, b]) => a + "-" + b));
       ctx.lineCap = "round";
       d.drawn.forEach(([a, b]) => { if (!rigidSet.has(a + "-" + b)) seg(proj(P[a], S), proj(P[b], S), DK.ink3, 2); });
-      d.rigid.forEach(([a, b], j) => { const c = o.boneCol ? o.boneCol(j) : null; seg(proj(P[a], S), proj(P[b], S), c || DK.ink2, c && o.wide === j ? 5.5 : 3.2); });
-      P.forEach((p, k) => dot(proj(p, S), o.hi === k ? 6 : 3.2, o.hi === k ? DK.kiva : "#0d1116", o.hi === k ? "#fff" : DK.ink));
+      d.rigid.forEach(([a, b], j) => { const c = o.boneCol ? o.boneCol(j) : null; seg(proj(P[a], S), proj(P[b], S), c || "#c9d5e3", c && o.wide === j ? 6.5 : 4.2); });
+      P.forEach((p, k) => dot(proj(p, S), o.hi === k ? 6.5 : 3.8, o.hi === k ? DK.kiva : "#0d1116", o.hi === k ? "#fff" : DK.ink));
     }
 
     /* ---------- one frame of the stage ---------- */
     function draw() {
       ctx.clearRect(0, 0, W, H);
       if (!d || !sprite) return;
-      if (view.auto && !reduce && playing) view.yaw += 0.003 * speed;
+      if (view.auto && !reduce && playing) { view.sw += 0.004 * speed; view.yaw = view.base + SWAY * Math.sin(view.sw); }
       const ph = st.ph, D = dur(ph), u = cl(st.t / D), det = detailed(), ts = tauShow();
       const ar = d.width / d.height;
       // the frame fills the stage for the first tokenization, then moves left to make room for the 3-D skeleton
-      const F0 = contain(ar, 16, 52, W - 32, H - 68), F1 = contain(ar, 16, 52, W * 0.57 - 24, H * 0.48);
+      const F0 = contain(ar, 16, 52, W - 32, H - 68), F1 = contain(ar, 16, 56, W * 0.56 - 24, H * 0.5); F1.y = Math.max(56, H * 0.42 - F1.h / 2);
       const split = st.c === 0 && ph === "tok" && st.tau === 0 ? 0 : st.c === 0 && ph === "att" && st.tau === 0 ? ease(cl(st.t / 800)) : 1;
       const F = lerpR(F0, F1, split);
-      const S = { x: W * 0.57, y: 44, w: W * 0.43 - 14, h: H - 60 };
+      const S = { x: W * 0.56 + 8, y: 44, w: W * 0.44 - 22, h: H - 60 };
+      S.cx = S.x + S.w / 2; S.cy = F1.y + F1.h * 0.5; S.sc = Math.min(0.45 * S.w / d.fitW, 0.34 * S.h / d.fitH);
       const B = { x: 16, y: F1.y + F1.h + 22, w: W * 0.57 - 32, h: H - (F1.y + F1.h + 22) - 16 }; // panel under the frame
       frame(ts, F);
       const dimT = ph === "tok" ? 0.12 : ph === "att" ? 0.3 : ph === "cal" ? 0.6 : 0.45;
@@ -557,32 +608,43 @@
           ctx.strokeStyle = DK.kiva; ctx.lineWidth = 2; ctx.strokeRect(x - F.w / g / 2, y - F.h / g / 2, F.w / g, F.h / g);
         }
         text(`${g} × ${g} = ${g * g} patch tokens`, F.x + 10, F.y + F.h - 12, { font: "600 13px 'IBM Plex Mono', monospace" });
-        text("frozen DINOv3 encodes each patch", F.x + F.w - 10, F.y + F.h - 12, { align: "right", col: DK.ink2 });
         pill = "Patch tokens, 24 × 24";
       }
       if (ph !== "tok") floor(S, split * 0.6);
       if (ph === "att") {
-        const perQ = det ? st.t < d.K * Q_MS : false, k = perQ ? Math.floor(st.t / Q_MS) : -1;
-        heat(k >= 0 ? d.attnK[k] : d.attnF[ts], F, 0.82);
-        ctx.strokeStyle = "rgba(255,255,255,.10)"; ctx.lineWidth = 1; ctx.beginPath();
-        for (let q = 1; q < d.grid; q++) { const x = F.x + q * F.w / d.grid, y = F.y + q * F.h / d.grid; ctx.moveTo(x, F.y); ctx.lineTo(x, F.y + F.h); ctx.moveTo(F.x, y); ctx.lineTo(F.x + F.w, y); }
-        ctx.stroke();
-        ctx.globalAlpha = split; skel(ts, S, { hi: k }); ctx.globalAlpha = 1;
-        const P = d.mean5[ts];
+        // one query at a time: its blur map on the frame, and a fibre from where it looks to the keypoint it becomes
+        const QT = d.K * Q_MS, perQ = det && st.t < QT, qf = perQ ? st.t / Q_MS : d.K, k = perQ ? Math.floor(qf) : -1, qu = qf - Math.floor(qf);
+        // queries whose keypoint barely moves when any patch is blurred (the fixed base) get no fibre
+        const live = q => d.kpW[q] >= 0.4, ha = q => live(q) ? 0.82 : 0.35;
         if (k >= 0) {
-          const a = d.attnK[k], dst = proj(P[k], S);
-          d.topK[k].forEach(i => { const p = tokXY(i, F); ctx.globalAlpha = 0.35 + 0.65 * a[i] / 255; seg(p, dst, DK.kiva, 0.8 + 2.2 * a[i] / 255); dot(p, 3, DK.kiva); });
-          ctx.globalAlpha = 1;
-          text(`query ${k + 1}`, dst[0] + 9, dst[1] - 8, { font: "600 12px 'IBM Plex Sans', sans-serif", col: DK.kiva });
-          pill = `Patches that move query ${k + 1} of ${d.K}`;
-        } else {
-          ctx.globalAlpha = 0.45 * split;
-          P.forEach((p, q) => seg(tokXY(d.top1[q], F), proj(p, S), DK.kiva, 1));
-          ctx.globalAlpha = 1;
-          pill = "Patches the keypoints depend on";
+          if (k > 0 && qu < 0.3) heat(d.attnK[k - 1], F, ha(k - 1) * (1 - qu / 0.3));
+          heat(d.attnK[k], F, ha(k) * (k > 0 ? cl(qu / 0.3) : 1));
+        } else heat(d.attnF[ts], F, 0.82 * (det ? cl((st.t - QT) / 600) : 1));
+        const P = d.mean5[ts], hot = q => [F.x + d.hot[q][0] * F.w, F.y + d.hot[q][1] * F.h];
+        ctx.save(); ctx.globalCompositeOperation = "lighter"; ctx.lineCap = "round";
+        for (let q = 0; q < d.K; q++) {
+          if (k >= 0 && q > k) break;
+          if (!live(q)) continue;
+          const C = fiber(hot(q), proj(P[q], S), F), w = 0.35 + 0.65 * d.kpW[q];
+          if (q === k) {
+            const g = ease(cl(qu / 0.55));
+            ctx.save(); ctx.beginPath(); ctx.rect(F.x, F.y, F.w, F.h); ctx.clip(); curve(C, g, "#bfe9ff", 1.2, 0.7 * split); ctx.restore();
+            ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.rect(F.x, F.y, F.w, F.h); ctx.clip("evenodd");
+            curve(C, g, DK.kiva, 7, 0.14 * split); curve(C, g, DK.kiva, 2, 0.95 * split); ctx.restore();
+            if (g >= 1) flow(C, q, 0.9);
+          } else if (k >= 0) curve(C, 1, DK.kiva, 1, 0.22 * w * split);
+          else { curve(C, 1, DK.kiva, 1, 0.16 * w); flow(C, q, 0.9 * w); }
         }
-        text(`blur test: brighter patches move the keypoints more (up to ${d.occ_mm_max} mm)`, F.x + 10, F.y + F.h - 12, { col: DK.ink2 });
-        text("each query becomes a 3-D keypoint", S.x + S.w / 2, S.y + S.h - 6, { align: "center", col: DK.ink2 });
+        ctx.restore();
+        ctx.globalAlpha = split; skel(ts, S, { hi: k });
+        text("3-D keypoints", S.cx, Math.min(S.y + S.h - 8, S.cy + d.fitH * S.sc + 30), { align: "center", col: DK.ink3, halo: false });
+        ctx.globalAlpha = 1;
+        if (k >= 0 && live(k)) {
+          const h = hot(k), p = proj(P[k], S);
+          ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(h[0], h[1], 7, 0, 7); ctx.stroke();
+          if (qu > 0.5) { ctx.globalAlpha = cl((qu - 0.5) / 0.2) * (1 - cl((qu - 0.75) / 0.25)); ctx.strokeStyle = DK.kiva; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p[0], p[1], 7 + 10 * cl((qu - 0.5) / 0.5), 0, 7); ctx.stroke(); ctx.globalAlpha = 1; }
+        }
+        pill = k >= 0 ? `Query ${k + 1} of ${d.K}` : "All queries";
       }
       if (ph === "den") {
         // 0-37% denoise from noise, 37-54% hold the five runs, 54-70% collapse onto the mean, then hold it
@@ -591,7 +653,7 @@
         pill = u < 0.37 ? "Denoising, 5 runs from noise" : u < 0.54 ? "Five clean runs" : u < 0.7 ? "Averaging the runs" : "Mean of 5 runs";
         // noise level of the runs, drawn as five bars under the frame
         const bx = B.x, by = B.y + 18, bw = Math.min(B.w, 330);
-        text("noise level of each run", bx, B.y + 6, { col: DK.ink2, base: "middle" });
+        text("noise", bx, B.y + 6, { col: DK.ink2, base: "middle" });
         RUNC.forEach((c, n) => {
           const y = by + n * 16;
           ctx.fillStyle = "rgba(255,255,255,.08)"; ctx.fillRect(bx, y, bw - 70, 8);
@@ -614,13 +676,13 @@
           ctx.strokeStyle = DK.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(m[0], m[1], 14, 0, 7); ctx.stroke();
         }
         if (shown >= nb) { urdf(i, wj, S, ph !== "adv"); ruler(i, wj, B, ph === "rig" && det ? ease(cl((u - 0.55) / 0.3)) : 1); }
-        pill = ph === "rig" ? (shown < nb ? `Measuring bone ${shown + 1} of ${nb}` : "Worst bone against its URDF length") : pill;
+        pill = ph === "rig" ? (shown < nb ? `Bone ${shown + 1} of ${nb}` : "Worst bone") : pill;
         if (ph === "adv") {
           if (i >= 3) stencil(i, S, { ...B, y: B.y + 118 });
           pill = `Advancing to frame ${d.start + advTarget()}`;
         }
       }
-      if (ph === "cal") { verdictCard(u); pill = "Calibrating against real footage"; }
+      if (ph === "cal") { verdictCard(u); pill = "Compare with real video"; }
 
       const pe = f("phase"); if (pe.textContent !== pill) pe.textContent = pill;
       pe.classList.toggle("quick", quick);
@@ -650,7 +712,7 @@
         M.forEach(p => dot(proj(p, S), 3.2, "#0d1116", DK.ink));
       }
       ctx.globalAlpha = 1;
-      if (merge < 1 && noise < 0.3) text(`offsets from the mean drawn ×${d.exag}`, S.x + S.w / 2, S.y + S.h - 6, { align: "center", col: DK.ink2 });
+      if (merge < 1 && noise < 0.3) text(`offsets ×${d.exag}`, S.x + S.w / 2, S.y + S.h - 6, { align: "center", col: DK.ink2 });
     }
     // the URDF length laid along the worst bone, and the part that should not be there
     function urdf(i, j, S, label) {
@@ -669,13 +731,13 @@
       const [a, b] = d.rigid[j], L = d.rest_mm[j], e = d.err[i][j], thr = d.rigidity_threshold_mm, len = L + e;
       const max = Math.max(len, L + 2 * thr) * 1.08, x0 = B.x, w = Math.min(B.w, 420), sx = v => x0 + w * v / max;
       const y = B.y + 56;
-      text(`worst bone, keypoints ${a}–${b}`, x0, B.y + 8, { col: DK.ink2, base: "middle" });
+      text("worst bone", x0, B.y + 8, { col: DK.ink2, base: "middle" });
       ctx.fillStyle = "rgba(61,220,132,.22)"; ctx.fillRect(sx(L - thr), y - 16, sx(L + thr) - sx(L - thr), 40);
       ctx.fillStyle = "rgba(255,255,255,.10)"; ctx.fillRect(sx(0), y, sx(L) - sx(0), 8);
       ctx.fillStyle = dkRamp(Math.abs(e) / thr); ctx.fillRect(sx(0), y, (sx(len * g + L * (1 - g)) - sx(0)), 8);
       seg([sx(L), y - 18], [sx(L), y + 26], DK.ink, 1.4, [4, 3]);
       text(`URDF ${L.toFixed(0)} mm`, sx(L), y + 40, { align: "center", col: DK.ink, font: "500 11px 'IBM Plex Mono', monospace" });
-      text(`±θ = ${thr.toFixed(1)} mm (real p95)`, sx(L), y - 22, { align: "center", col: DK.good, font: "500 11px 'IBM Plex Mono', monospace" });
+      text(`±θ ${thr.toFixed(1)} mm`, sx(L), y - 22, { align: "center", col: DK.good, font: "500 11px 'IBM Plex Mono', monospace" });
       const mx = sx(len * g + L * (1 - g));
       dot([mx, y + 4], 4, dkRamp(Math.abs(e) / thr));
       if (g > 0.95) text(`measured ${len.toFixed(0)} mm`, Math.min(mx, x0 + w), y + 58, { align: len > L ? "right" : "left", col: dkRamp(Math.abs(e) / thr), font: "600 12px 'IBM Plex Mono', monospace" });
@@ -695,7 +757,7 @@
       seg(pts[0], pts[3], "rgba(255,138,80,.5)", 1, [3, 3]);
       pts.forEach((q, n) => { dot(q, n === 3 ? 5.5 : 4, DK.jerk, "#fff"); text((Wt[n] > 0 ? "+" : "−") + Math.abs(Wt[n]), q[0] + 8, q[1] + (n % 2 ? 15 : -8), { col: DK.jerk, font: "600 12px 'IBM Plex Mono', monospace" }); });
       const x0 = B.x, y = B.y + 8;
-      text(`jerk on keypoint ${k}, frames ${i - 3} to ${i}`, x0, y, { col: DK.ink2, base: "middle" });
+      text("jerk", x0, y, { col: DK.ink2, base: "middle" });
       const bw = 64;
       ts.forEach((t, n) => {
         const x = x0 + n * (bw + 10);
@@ -705,22 +767,20 @@
       });
       const r = d.jRatio[i];
       text(`= ${r < 0.01 ? r.toExponential(1) : r.toFixed(2)} × θ`, x0 + 4 * (bw + 10) + 4, y + 36, { col: r > 1 ? DK.bad : DK.ink, font: "700 14px 'IBM Plex Mono', monospace", base: "middle" });
-      text("(divided by Δt³ and the real-video p95)", x0, y + 68, { col: DK.ink3, font: "400 11px 'IBM Plex Sans', sans-serif" });
     }
     function verdictCard(u) {
       const w = Math.min(470, W - 60), h = 176, x = (W - w) / 2, y = (H - h) / 2;
       ctx.fillStyle = DK.panel; ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.roundRect(x, y, w, h, 12); ctx.fill(); ctx.stroke();
       const thr = d.rigidity_threshold_mm, line = (n, s, col, font) => { if (u > n * 0.14) text(s, x + 20, y + 34 + n * 27, { col, font: font || "500 13.5px 'IBM Plex Mono', monospace", halo: false }); };
-      line(0, `median over 16 frames   ${d.vRig.toFixed(1)} mm`, DK.ink);
-      line(1, `÷ real-footage p95  θ = ${thr.toFixed(1)} mm`, DK.ink2);
+      line(0, `median bone error  ${d.vRig.toFixed(1)} mm`, DK.ink);
+      line(1, `÷ θ (real video)   ${thr.toFixed(1)} mm`, DK.ink2);
       if (d.robot === "single_arm") line(2, `rigidity ${d.sRigRe.toFixed(2)} · jerk ${d.sJerkRe.toFixed(2)} → max`, DK.ink);
       else line(2, `= ${d.sRigRe.toFixed(2)} (this re-read)`, DK.ink);
-      line(3, `stored score s = ${d.kiva_ratio.toFixed(2)}, cuts ${CUTS[d.robot].join(" / ")}`, DK.ink);
+      line(3, `KIVA score ${d.kiva_ratio.toFixed(2)}`, DK.ink);
       if (u > 0.62) {
         const b = band(d.kiva_ratio, d.robot), c = b === "high" ? DK.bad : b === "med" ? DK.amber : DK.good;
         text(BAND_TXT[b], x + 20, y + h - 18, { col: c, font: "700 20px 'IBM Plex Sans', sans-serif", halo: false });
-        text(`human raters: ${d.human}`, x + w - 20, y + h - 20, { align: "right", col: DK.ink2, halo: false });
       }
     }
 
