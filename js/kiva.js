@@ -457,6 +457,30 @@
       f("jl").textContent = d.robot === "single_arm" ? "Jerk ÷ real p95" : "Jerk ÷ real p95, reported only";
       st.c = 0; st.tau = 0; st.ph = "tok"; st.t = 0; lastPh = null; sync();
     }
+    // bright blobs of a saliency map: local maxima above 45% of its peak, strongest first
+    function blobs(a, g, n) {
+      const c = [];
+      for (let i = 0; i < g * g; i++) {
+        const v = a[i]; if (v < 115) continue;
+        const x = i % g, y = (i / g) | 0; let top = true;
+        for (let dy = -2; dy <= 2 && top; dy++) for (let dx = -2; dx <= 2; dx++) {
+          const xx = x + dx, yy = y + dy;
+          if ((dx || dy) && xx >= 0 && yy >= 0 && xx < g && yy < g && a[yy * g + xx] > v) { top = false; break; }
+        }
+        if (top) c.push([(x + 0.5) / g, (y + 0.5) / g, v / 255, i]);
+      }
+      return c.sort((p, q) => q[2] - p[2]).slice(0, n);
+    }
+    // for the whole frame: each bright blob of the summed map, sent to the keypoints whose own map is bright there
+    function frameSrc(t) {
+      if (d.fsrc[t]) return d.fsrc[t];
+      const out = [];
+      blobs(d.attnF[t], d.grid, 8).forEach(b => {
+        const ks = d.attnK.map((a, k) => [k, a[b[3]] / 255]).filter(([k, v]) => d.kpW[k] >= 0.4 && v >= 0.45).sort((p, q) => q[1] - p[1]).slice(0, 5);
+        ks.forEach(([k, v]) => out.push({ b, k, v }));
+      });
+      return (d.fsrc[t] = out);
+    }
     function labPrep(d) {
       d.labPrep = true;
       const top = (a, n) => Array.from(a.keys()).sort((x, y) => a[y] - a[x]).slice(0, n);
@@ -472,19 +496,8 @@
         return [sx / sw / g, sy / sw / g];
       });
       // every bright blob of a query's map, not only its peak: local maxima above 45% of the peak, strongest first
-      d.src = d.attnK.map(a => {
-        const g = d.grid, c = [];
-        for (let i = 0; i < g * g; i++) {
-          const v = a[i]; if (v < 115) continue;
-          const x = i % g, y = (i / g) | 0; let top = true;
-          for (let dy = -2; dy <= 2 && top; dy++) for (let dx = -2; dx <= 2; dx++) {
-            const xx = x + dx, yy = y + dy;
-            if ((dx || dy) && xx >= 0 && yy >= 0 && xx < g && yy < g && a[yy * g + xx] > v) { top = false; break; }
-          }
-          if (top) c.push([(x + 0.5) / g, (y + 0.5) / g, v / 255]);
-        }
-        return c.sort((p, q) => q[2] - p[2]).slice(0, 6);
-      });
+      d.src = d.attnK.map(a => blobs(a, d.grid, 6));
+      d.fsrc = [];
       const km = Math.max(...(d.kp_mm || [1]));
       d.kpW = d.attnK.map((_, k) => d.kp_mm ? d.kp_mm[k] / km : 1);
       d.sRigRe = d.vRig / d.rigidity_threshold_mm;
@@ -574,9 +587,10 @@
       ctx.stroke(); ctx.globalAlpha = 1;
     }
     function flow(C, seed, a) {
-      for (let j = 0; j < 3; j++) {
-        const t = (st.clk / 1400 + seed * 0.37 + j / 3) % 1, q = bez(C, t);
-        ctx.globalAlpha = a * Math.sin(Math.PI * t); dot(q, 2.2, "#bfe9ff");
+      for (let j = 0; j < 4; j++) {
+        const t = (st.clk / 1200 + seed * 0.37 + j / 4) % 1, q = bez(C, t), f = a * Math.min(1, 4 * Math.sin(Math.PI * t));
+        ctx.globalAlpha = 0.25 * f; dot(q, 6, DK.kiva);
+        ctx.globalAlpha = f; dot(q, 2.4, "#e6f7ff");
       }
       ctx.globalAlpha = 1;
     }
@@ -636,32 +650,30 @@
           heat(d.attnK[k], F, ha(k) * (k > 0 ? cl(qu / 0.3) : 1));
         } else heat(d.attnF[ts], F, 0.82 * (det ? cl((st.t - QT) / 600) : 1));
         const P = d.mean5[ts], at = sp => [F.x + sp[0] * F.w, F.y + sp[1] * F.h];
+        // a glowing stream from a bright patch to a keypoint, drawn up to t1, with particles once complete
+        const stream = (h, q, a, t1, seed) => {
+          const C = fiber(h, proj(P[q], S), F);
+          curve(C, t1, DK.kiva, 7, 0.16 * a); curve(C, t1, "#9fdcff", 1.5, 0.85 * a);
+          if (t1 >= 1) flow(C, seed, a);
+        };
+        const ring = (h, v, a) => { ctx.globalAlpha = a; ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(h[0], h[1], 4 + 6 * v, 0, 7); ctx.stroke(); ctx.globalAlpha = 1; };
         ctx.save(); ctx.globalCompositeOperation = "lighter"; ctx.lineCap = "round";
-        for (let q = 0; q < d.K; q++) {
-          if (k >= 0 && q > k) break;
-          if (!live(q)) continue;
-          const p = proj(P[q], S), w = 0.35 + 0.65 * d.kpW[q];
-          d.src[q].forEach((sp, j) => {
-            const C = fiber(at(sp), p, F), ww = sp[2] * w;
-            if (q === k) {
-              const g = ease(cl(qu / 0.55));
-              ctx.save(); ctx.beginPath(); ctx.rect(F.x, F.y, F.w, F.h); ctx.clip(); curve(C, g, "#bfe9ff", 1, 0.5 * ww * split); ctx.restore();
-              ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.rect(F.x, F.y, F.w, F.h); ctx.clip("evenodd");
-              curve(C, g, DK.kiva, 6, 0.12 * ww * split); curve(C, g, DK.kiva, 0.8 + 1.2 * sp[2], 0.9 * ww * split); ctx.restore();
-              if (g >= 1) flow(C, q * 7 + j, 0.9 * ww);
-            } else if (k >= 0) curve(C, 1, DK.kiva, 1, 0.12 * ww * split);
-            else if (j < 4) { curve(C, 1, DK.kiva, 1, 0.12 * ww); flow(C, q * 7 + j, 0.9 * ww); }
-          });
+        if (k >= 0) {
+          // this query: every bright blob of its map streams into its keypoint
+          if (live(k)) { const g = ease(cl(qu / 0.5)); d.src[k].forEach((sp, j) => stream(at(sp), k, (0.45 + 0.55 * sp[2]) * split, g, k * 7 + j)); }
+        } else {
+          // all queries: every bright blob of the frame streams into the keypoints that read it
+          const fin = det ? ease(cl((st.t - d.K * Q_MS) / 900)) : 1;
+          frameSrc(ts).forEach((e, j) => stream(at(e.b), e.k, 0.35 + 0.65 * e.b[2] * e.v, fin, j));
         }
         ctx.restore();
+        if (k >= 0 && live(k)) d.src[k].forEach(sp => ring(at(sp), sp[2], 0.5 + 0.5 * sp[2]));
+        if (k < 0) { const seen = new Set(); frameSrc(ts).forEach(e => { if (!seen.has(e.b[3])) { seen.add(e.b[3]); ring(at(e.b), e.b[2], 0.4 + 0.6 * e.b[2]); } }); }
         ctx.globalAlpha = split; skel(ts, S, { hi: k });
         text(d.robot === "single_arm" ? "3-D gripper keypoints" : "3-D keypoints", S.cx, Math.min(S.y + S.h - 8, S.cy + d.fitH * S.sc + 30), { align: "center", col: DK.ink3, halo: false });
         ctx.globalAlpha = 1;
         if (k >= 0 && live(k)) {
           const p = proj(P[k], S);
-          ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.3;
-          d.src[k].forEach(sp => { const h = at(sp); ctx.globalAlpha = 0.4 + 0.6 * sp[2]; ctx.beginPath(); ctx.arc(h[0], h[1], 3 + 5 * sp[2], 0, 7); ctx.stroke(); });
-          ctx.globalAlpha = 1;
           if (qu > 0.5) { ctx.globalAlpha = cl((qu - 0.5) / 0.2) * (1 - cl((qu - 0.75) / 0.25)); ctx.strokeStyle = DK.kiva; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p[0], p[1], 7 + 10 * cl((qu - 0.5) / 0.5), 0, 7); ctx.stroke(); ctx.globalAlpha = 1; }
         }
         pill = k >= 0 ? `Query ${k + 1} of ${d.K}` : "All queries";

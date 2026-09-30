@@ -63,7 +63,10 @@
     const links = [...document.querySelectorAll(".nav a.l, .side ol a")];
     const io = new IntersectionObserver(es => es.forEach(e => {
       if (!e.isIntersecting) return;
-      links.forEach(a => a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id));
+      links.forEach(a => {
+        a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id);
+        a.classList.toggle("in", (a.dataset.kids || "").split(" ").includes(e.target.id));
+      });
     }), { rootMargin: "-45% 0px -50% 0px" });
     document.querySelectorAll("section.sec").forEach(s => io.observe(s));
     const bar = document.getElementById("progress");

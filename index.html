@@ -29,13 +29,17 @@
   <ol>
     <li><a href="#abstract" style="--c:var(--ink)"><span>01</span>Abstract</a></li>
     <li><a href="#benchmark" style="--c:var(--data)"><span>02</span>Benchmark</a></li>
-    <li><a href="#kiva" style="--c:var(--kiva)"><span>03</span>KIVA</a></li>
-    <li><a href="#rigis" style="--c:var(--rigis)"><span>04</span>RIGIS</a></li>
-    <li><a href="#results" style="--c:var(--audit)"><span>05</span>Human alignment</a></li>
-    <li><a href="#models" style="--c:var(--navy)"><span>06</span>World models</a></li>
-    <li><a href="#acceleration" style="--c:var(--accel)"><span>07</span>Acceleration</a></li>
-    <li><a href="#limits" style="--c:var(--ink-2)"><span>08</span>Limitations</a></li>
-    <li><a href="#bibtex" style="--c:var(--ink)"><span>09</span>BibTeX</a></li>
+    <li><a href="#method" style="--c:var(--ink)" data-kids="kiva rigis"><span>03</span>Method</a>
+      <ol class="kids">
+        <li><a href="#kiva" style="--c:var(--kiva)"><span>3.1</span>KIVA</a></li>
+        <li><a href="#rigis" style="--c:var(--rigis)"><span>3.2</span>RIGIS</a></li>
+      </ol>
+    </li>
+    <li><a href="#results" style="--c:var(--audit)"><span>04</span>Human alignment</a></li>
+    <li><a href="#models" style="--c:var(--navy)"><span>05</span>World models</a></li>
+    <li><a href="#acceleration" style="--c:var(--accel)"><span>06</span>Acceleration</a></li>
+    <li><a href="#limits" style="--c:var(--ink-2)"><span>07</span>Limitations</a></li>
+    <li><a href="#bibtex" style="--c:var(--ink)"><span>08</span>BibTeX</a></li>
   </ol>
   <div class="side-foot">
     <div class="row"><a class="btn" href="#bibtex">BibTeX</a></div>
@@ -48,6 +52,7 @@
     <ul>
       <li><a class="l" href="#abstract">Abstract</a></li>
       <li><a class="l" href="#benchmark">Benchmark</a></li>
+      <li><a class="l" href="#method">Method</a></li>
       <li><a class="l" href="#kiva">KIVA</a></li>
       <li><a class="l" href="#rigis">RIGIS</a></li>
       <li><a class="l" href="#results">Human alignment</a></li>
@@ -198,17 +203,26 @@
   </div>
 </section>
 
-<section class="sec" id="kiva" style="--c:var(--kiva)">
+<section class="sec" id="method" style="--c:var(--ink)">
+  <div class="wrap">
+    <div class="sec-head"><span class="secno">§3.4</span><h2>Method: two new physics metrics</h2></div>
+    <div class="indent">
+      <p class="lede">KIVA checks the robot's kinematics inside each view. RIGIS checks that the views of a multi-camera rollout agree on one scene and one fixed rig.</p>
+    </div>
+    <figure class="overview">
+      <div class="figimg" data-zoom><img src="assets/fig/fig3.png" alt="Figure 3: KIVA training and inference pipeline, and RIGIS multi-view pipeline" loading="lazy"></div>
+      <figcaption class="cap"><b>Figure 3.</b> (a) KIVA: a shared video-conditioned reader learns from forward-kinematics targets with a Huber loss; at inference five denoised candidates are averaged before rigidity and jerk are measured and calibrated against real-video references. (b) RIGIS: VGGT-Ω estimates depth and cameras for geometric consistency \(S_{\text{geo}}\) and camera pose stability \(S_{\text{pose}}\).</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="sec sub" id="kiva" style="--c:var(--kiva)">
   <div class="wrap">
     <div class="sec-head"><span class="secno">§3.4.1</span><h2>KIVA: <u style="text-decoration-color:var(--kiva)">K</u>inematic <u style="text-decoration-color:var(--kiva)">I</u>nvariant <u style="text-decoration-color:var(--kiva)">V</u>iolation <u style="text-decoration-color:var(--kiva)">A</u>ssessment</h2></div>
     <div class="indent">
       <p class="lede">A diffusion reader trained on real teleoperation reads 3-D robot keypoints from the pixels. Links cannot change length and joints cannot teleport, so KIVA measures both and compares them with real footage.</p>
     </div>
 
-    <figure class="pipe">
-      <div class="figimg" data-zoom><img src="assets/fig/fig3a.png" alt="Figure 3a: KIVA training with forward-kinematics targets, and inference with five denoised runs, rigidity and jerk" loading="lazy"></div>
-      <figcaption class="cap"><b>Figure 3a.</b> KIVA: a shared video-conditioned reader learns from forward-kinematics targets with a Huber loss; at inference five denoised candidates are averaged before rigidity and jerk are measured and calibrated against real-video references.</figcaption>
-    </figure>
     <div class="lab" id="kivaLab" style="--c:var(--kiva)">
       <div class="lab-top">
         <span class="ttl">How KIVA scores a rollout</span>
@@ -251,16 +265,12 @@
   </div>
 </section>
 
-<section class="sec" id="rigis" style="--c:var(--rigis)">
+<section class="sec sub" id="rigis" style="--c:var(--rigis)">
   <div class="wrap">
     <div class="sec-head"><span class="secno">§3.4.2</span><h2>RIGIS: <u style="text-decoration-color:var(--rigis)">R</u>obotic <u style="text-decoration-color:var(--rigis)">I</u>nter-view <u style="text-decoration-color:var(--rigis)">G</u>eometry &amp; <u style="text-decoration-color:var(--rigis)">I</u>ntrinsic-Extrinsic <u style="text-decoration-color:var(--rigis)">S</u>tability</h2></div>
     <div class="indent">
       <p class="lede">Cameras on a fixed rig see one scene and do not move. RIGIS lifts each view into 3-D with VGGT-Ω and checks whether the views agree where they overlap and whether the estimated cameras stay put.</p>
     </div>
-    <figure class="pipe pipe-sq">
-      <div class="figimg" data-zoom><img src="assets/fig/fig3b.png" alt="Figure 3b: RIGIS multi-view pipeline with VGGT-Omega depth and cameras, geometric consistency and camera pose stability" loading="lazy"></div>
-      <figcaption class="cap"><b>Figure 3b.</b> RIGIS: VGGT-Ω estimates depth and cameras for geometric consistency \(S_{\text{geo}}\) and camera pose stability \(S_{\text{pose}}\).</figcaption>
-    </figure>
     <div class="lab rlab" id="rigisLab" style="--c:var(--rigis)">
       <div class="lab-top">
         <span class="ttl">RIGIS, replayed on a rated rollout</span>
