@@ -471,6 +471,20 @@
         }
         return [sx / sw / g, sy / sw / g];
       });
+      // every bright blob of a query's map, not only its peak: local maxima above 45% of the peak, strongest first
+      d.src = d.attnK.map(a => {
+        const g = d.grid, c = [];
+        for (let i = 0; i < g * g; i++) {
+          const v = a[i]; if (v < 115) continue;
+          const x = i % g, y = (i / g) | 0; let top = true;
+          for (let dy = -2; dy <= 2 && top; dy++) for (let dx = -2; dx <= 2; dx++) {
+            const xx = x + dx, yy = y + dy;
+            if ((dx || dy) && xx >= 0 && yy >= 0 && xx < g && yy < g && a[yy * g + xx] > v) { top = false; break; }
+          }
+          if (top) c.push([(x + 0.5) / g, (y + 0.5) / g, v / 255]);
+        }
+        return c.sort((p, q) => q[2] - p[2]).slice(0, 6);
+      });
       const km = Math.max(...(d.kp_mm || [1]));
       d.kpW = d.attnK.map((_, k) => d.kp_mm ? d.kp_mm[k] / km : 1);
       d.sRigRe = d.vRig / d.rigidity_threshold_mm;
@@ -571,7 +585,8 @@
       const P = d.mean5[i], rigidSet = new Set(d.rigid.map(([a, b]) => a + "-" + b));
       ctx.lineCap = "round";
       d.drawn.forEach(([a, b]) => { if (!rigidSet.has(a + "-" + b)) seg(proj(P[a], S), proj(P[b], S), DK.ink3, 2); });
-      d.rigid.forEach(([a, b], j) => { const c = o.boneCol ? o.boneCol(j) : null; seg(proj(P[a], S), proj(P[b], S), c || "#c9d5e3", c && o.wide === j ? 6.5 : 4.2); });
+      const gap = d.robot === "single_arm" ? 3 : -1; // a1x_ee: wrist, palm, two fingertips; bone 3 is the fingertip gap
+      d.rigid.forEach(([a, b], j) => { const c = o.boneCol ? o.boneCol(j) : null; seg(proj(P[a], S), proj(P[b], S), c || "#c9d5e3", j === gap ? 1.6 : c && o.wide === j ? 6.5 : 4.2, j === gap ? [4, 4] : null); });
       P.forEach((p, k) => dot(proj(p, S), o.hi === k ? 6.5 : 3.8, o.hi === k ? DK.kiva : "#0d1116", o.hi === k ? "#fff" : DK.ink));
     }
 
@@ -620,28 +635,33 @@
           if (k > 0 && qu < 0.3) heat(d.attnK[k - 1], F, ha(k - 1) * (1 - qu / 0.3));
           heat(d.attnK[k], F, ha(k) * (k > 0 ? cl(qu / 0.3) : 1));
         } else heat(d.attnF[ts], F, 0.82 * (det ? cl((st.t - QT) / 600) : 1));
-        const P = d.mean5[ts], hot = q => [F.x + d.hot[q][0] * F.w, F.y + d.hot[q][1] * F.h];
+        const P = d.mean5[ts], at = sp => [F.x + sp[0] * F.w, F.y + sp[1] * F.h];
         ctx.save(); ctx.globalCompositeOperation = "lighter"; ctx.lineCap = "round";
         for (let q = 0; q < d.K; q++) {
           if (k >= 0 && q > k) break;
           if (!live(q)) continue;
-          const C = fiber(hot(q), proj(P[q], S), F), w = 0.35 + 0.65 * d.kpW[q];
-          if (q === k) {
-            const g = ease(cl(qu / 0.55));
-            ctx.save(); ctx.beginPath(); ctx.rect(F.x, F.y, F.w, F.h); ctx.clip(); curve(C, g, "#bfe9ff", 1.2, 0.7 * split); ctx.restore();
-            ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.rect(F.x, F.y, F.w, F.h); ctx.clip("evenodd");
-            curve(C, g, DK.kiva, 7, 0.14 * split); curve(C, g, DK.kiva, 2, 0.95 * split); ctx.restore();
-            if (g >= 1) flow(C, q, 0.9);
-          } else if (k >= 0) curve(C, 1, DK.kiva, 1, 0.22 * w * split);
-          else { curve(C, 1, DK.kiva, 1, 0.16 * w); flow(C, q, 0.9 * w); }
+          const p = proj(P[q], S), w = 0.35 + 0.65 * d.kpW[q];
+          d.src[q].forEach((sp, j) => {
+            const C = fiber(at(sp), p, F), ww = sp[2] * w;
+            if (q === k) {
+              const g = ease(cl(qu / 0.55));
+              ctx.save(); ctx.beginPath(); ctx.rect(F.x, F.y, F.w, F.h); ctx.clip(); curve(C, g, "#bfe9ff", 1, 0.5 * ww * split); ctx.restore();
+              ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.rect(F.x, F.y, F.w, F.h); ctx.clip("evenodd");
+              curve(C, g, DK.kiva, 6, 0.12 * ww * split); curve(C, g, DK.kiva, 0.8 + 1.2 * sp[2], 0.9 * ww * split); ctx.restore();
+              if (g >= 1) flow(C, q * 7 + j, 0.9 * ww);
+            } else if (k >= 0) curve(C, 1, DK.kiva, 1, 0.12 * ww * split);
+            else if (j < 4) { curve(C, 1, DK.kiva, 1, 0.12 * ww); flow(C, q * 7 + j, 0.9 * ww); }
+          });
         }
         ctx.restore();
         ctx.globalAlpha = split; skel(ts, S, { hi: k });
-        text("3-D keypoints", S.cx, Math.min(S.y + S.h - 8, S.cy + d.fitH * S.sc + 30), { align: "center", col: DK.ink3, halo: false });
+        text(d.robot === "single_arm" ? "3-D gripper keypoints" : "3-D keypoints", S.cx, Math.min(S.y + S.h - 8, S.cy + d.fitH * S.sc + 30), { align: "center", col: DK.ink3, halo: false });
         ctx.globalAlpha = 1;
         if (k >= 0 && live(k)) {
-          const h = hot(k), p = proj(P[k], S);
-          ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(h[0], h[1], 7, 0, 7); ctx.stroke();
+          const p = proj(P[k], S);
+          ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.3;
+          d.src[k].forEach(sp => { const h = at(sp); ctx.globalAlpha = 0.4 + 0.6 * sp[2]; ctx.beginPath(); ctx.arc(h[0], h[1], 3 + 5 * sp[2], 0, 7); ctx.stroke(); });
+          ctx.globalAlpha = 1;
           if (qu > 0.5) { ctx.globalAlpha = cl((qu - 0.5) / 0.2) * (1 - cl((qu - 0.75) / 0.25)); ctx.strokeStyle = DK.kiva; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p[0], p[1], 7 + 10 * cl((qu - 0.5) / 0.5), 0, 7); ctx.stroke(); ctx.globalAlpha = 1; }
         }
         pill = k >= 0 ? `Query ${k + 1} of ${d.K}` : "All queries";

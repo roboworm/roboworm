@@ -205,6 +205,10 @@
       <p class="lede">A diffusion reader trained on real teleoperation reads 3-D robot keypoints from the pixels. Links cannot change length and joints cannot teleport, so KIVA measures both and compares them with real footage.</p>
     </div>
 
+    <figure class="pipe">
+      <div class="figimg" data-zoom><img src="assets/fig/fig3a.png" alt="Figure 3a: KIVA training with forward-kinematics targets, and inference with five denoised runs, rigidity and jerk" loading="lazy"></div>
+      <figcaption class="cap"><b>Figure 3a.</b> KIVA: a shared video-conditioned reader learns from forward-kinematics targets with a Huber loss; at inference five denoised candidates are averaged before rigidity and jerk are measured and calibrated against real-video references.</figcaption>
+    </figure>
     <div class="lab" id="kivaLab" style="--c:var(--kiva)">
       <div class="lab-top">
         <span class="ttl">How KIVA scores a rollout</span>
@@ -244,10 +248,6 @@
     </div>
     <p class="cap indent">Real rollouts from the 300-video human study. Curves come from a re-read of the published checkpoints; the verdict uses the stored score, which falls in the same band.</p>
 
-    <figure class="indent" style="margin-top:2rem">
-      <div class="figimg" data-zoom><img src="assets/fig/fig3.png" alt="Figure 3: KIVA training and inference pipeline, and RIGIS multi-view pipeline" loading="lazy"></div>
-      <figcaption class="cap"><b>Figure 3.</b> (a) KIVA: a shared video-conditioned reader learns from forward-kinematics targets with a Huber loss; at inference five denoised candidates are averaged before rigidity and jerk are measured and calibrated against real-video references. (b) RIGIS: VGGT-Ω estimates depth and cameras for geometric consistency \(S_{\text{geo}}\) and camera pose stability \(S_{\text{pose}}\).</figcaption>
-    </figure>
   </div>
 </section>
 
@@ -257,6 +257,10 @@
     <div class="indent">
       <p class="lede">Cameras on a fixed rig see one scene and do not move. RIGIS lifts each view into 3-D with VGGT-Ω and checks whether the views agree where they overlap and whether the estimated cameras stay put.</p>
     </div>
+    <figure class="pipe pipe-sq">
+      <div class="figimg" data-zoom><img src="assets/fig/fig3b.png" alt="Figure 3b: RIGIS multi-view pipeline with VGGT-Omega depth and cameras, geometric consistency and camera pose stability" loading="lazy"></div>
+      <figcaption class="cap"><b>Figure 3b.</b> RIGIS: VGGT-Ω estimates depth and cameras for geometric consistency \(S_{\text{geo}}\) and camera pose stability \(S_{\text{pose}}\).</figcaption>
+    </figure>
     <div class="lab rlab" id="rigisLab" style="--c:var(--rigis)">
       <div class="lab-top">
         <span class="ttl">RIGIS, replayed on a rated rollout</span>

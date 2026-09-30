@@ -568,3 +568,7 @@ details.sandbox > .cap { margin-top: .6rem; }
 .lat-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; font: 600 12.5px/1 var(--f-ui); color: var(--ink-2); }
 .lat-replay { font: 500 12px var(--f-ui); color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
 .lat-replay:hover { color: var(--ink); border-color: var(--ink-3); }
+/* static pipeline figure above each lab */
+.pipe { margin: 1.6rem auto 2rem; max-width: 980px; }
+.pipe.pipe-sq { max-width: 640px; }
+.pipe .cap { margin-top: .6rem; }
