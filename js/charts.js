@@ -96,13 +96,23 @@
   /* ---------- Table 1 ---------- */
   function tab1() {
     const t = document.getElementById("tab1"); if (!t) return;
-    const yn = v => v ? '<span class="y" aria-label="yes">✓</span>' : '<span class="n" aria-label="no">✗</span>';
-    let h = `<thead><tr><th>Benchmark</th><th># Samples</th><th>Data sources</th><th>Morphologies</th><th>Multi-view</th><th>Long-horizon</th><th>Evaluator</th><th>Cross-view geometry</th><th>Speed-up audit</th></tr></thead><tbody>`;
+    // coverage = how many of the four capability columns a benchmark has
+    const yn = (v, i) => v ? `<span class="y" style="--i:${i}" aria-label="yes">✓</span>` : '<span class="n" aria-label="no">✗</span>';
+    let h = `<thead><tr><th>Benchmark</th><th># Samples</th><th>Data sources</th><th>Morphologies</th><th>Multi-view</th><th>Long-horizon</th><th>Evaluator</th><th>Cross-view geometry</th><th>Speed-up audit</th><th>Coverage</th></tr></thead><tbody>`;
+    let n = 0;
     D.tab1.forEach(g => {
-      h += `<tr class="grp"><td colspan="9">${g.group}</td></tr>`;
-      g.rows.forEach(r => { h += `<tr${r[0] === "RoboWorM" ? ' class="ours"' : ""}><td>${r[0] === "RoboWorM" ? '<span class="mark">RoboWorM</span>' : r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${yn(r[4])}</td><td>${yn(r[5])}</td><td>${r[6]}</td><td>${yn(r[7])}</td><td>${yn(r[8])}</td></tr>`; });
+      h += `<tr class="grp"><td colspan="10">${g.group}</td></tr>`;
+      g.rows.forEach(r => {
+        const ours = r[0] === "RoboWorM", has = [r[4], r[5], r[7], r[8]], k = has.filter(Boolean).length;
+        const d = ours ? 1.1 + 0.06 * n : 0.06 * n; n++;
+        const pips = [0, 1, 2, 3].map(i => `<i class="${i < k ? "on" : ""}" style="--i:${i}"></i>`).join("");
+        h += `<tr${ours ? ' class="ours"' : ""} style="--d:${d.toFixed(2)}s"><td>${ours ? '<span class="mark">RoboWorM</span>' : r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${yn(r[4], 0)}</td><td>${yn(r[5], 1)}</td><td>${r[6]}</td><td>${yn(r[7], 2)}</td><td>${yn(r[8], 3)}</td><td class="cov"><span class="pips">${pips}</span><b>${k}/4</b></td></tr>`;
+      });
     });
     t.innerHTML = h + "</tbody>";
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    t.classList.add("anim");
+    new IntersectionObserver((es, io) => es.forEach(e => { if (e.isIntersecting) { io.disconnect(); t.classList.add("go"); } }), { threshold: 0.3 }).observe(t);
   }
 
   /* ---------- RQ1 alignment bars ---------- */
@@ -374,84 +384,91 @@
   }
 
   /* ---------- RQ1 detail: 300 multi-view clips, RIGIS vs a VLM judge ---------- */
+  // RQ1 multi-view: the clips of each morphology sorted by each scorer, one cell per clip colored by the human label.
+  // A scorer that agrees with people turns its strip from red on the left to green on the right.
   function swarm() {
     const svg = document.getElementById("swarm"); if (!svg) return;
-    const MODES = [
-      { k: "S", t: "RIGIS" }, { k: "gemma_cot", t: "Gemma 4 31B + CoT" }, { k: "gemma_zs", t: "Gemma 4 31B" },
-      { k: "gemini_cot", t: "Gemini 3.6 Flash + CoT" }, { k: "gemini_zs", t: "Gemini 3.6 Flash" },
+    const ROWS = [
+      { k: "S", t: "RIGIS (ours)", ours: true },
+      { k: "gemma_cot", t: "Gemma 4 31B + CoT", n: "Gemma 4 31B", c: "cot" }, { k: "gemma_zs", t: "Gemma 4 31B", n: "Gemma 4 31B", c: "zs" },
+      { k: "gemini_zs", t: "Gemini 3.6 Flash", n: "Gemini 3.6 Flash", c: "zs" }, { k: "gemini_cot", t: "Gemini 3.6 Flash + CoT", n: "Gemini 3.6 Flash", c: "cot" },
     ];
     const LANES = [["bimanual", "Bimanual"], ["humanoid", "Humanoid"], ["single_arm", "Single-arm"]];
     const HC = { 1: "var(--bad)", 2: "var(--med)", 3: "var(--good)" }, HN = { 1: "bad", 2: "medium", 3: "good" };
-    let data = null, mode = "S", pos = null;
-    const val = (c, m) => m === "S" ? c.S : (c.v[m] && c.v[m].length ? c.v[m].reduce((a, b) => a + b, 0) / c.v[m].length : null);
-    function layout(W) {
-      const pad = { l: 92, r: 16, t: 26 }, laneH = W < 560 ? 120 : 132, r = W < 560 ? 3 : 3.6;
-      const out = {}, meta = [];
+    const SP = D.align.multiview.spearman.rows;
+    const rho = (r, li) => (r.ours ? SP.find(x => x[1] === "ours") : SP.find(x => x[0] === r.n && x[1] === r.c))[2][li];
+    const val = (c, m) => m === "S" ? c.S : c.v[m].reduce((a, b) => a + b, 0) / c.v[m].length;
+    let data = null, L = null, raf = 0, played = false;
+    const card = svg.closest(".card");
+    function build() {
+      const W = svg.clientWidth || 900, pad = { l: 168, r: 118, t: 30 }, rowH = 17, gapRow = 5, laneGap = 34, headH = 24;
+      const sw = W - pad.l - pad.r;
+      let y = pad.t, s = "";
+      s += `<text x="${pad.l}" y="16" font-size="11" fill="var(--ink-3)" font-family="IBM Plex Sans">← scored worst</text><text x="${pad.l + sw}" y="16" text-anchor="end" font-size="11" fill="var(--ink-3)" font-family="IBM Plex Sans">scored best →</text>`;
+      s += `<text x="${W - pad.r + 14}" y="16" font-size="11" fill="var(--ink-3)" font-family="IBM Plex Sans">Spearman ρ</text>`;
+      const cells = [];
       LANES.forEach(([e, name], li) => {
-        const cs = data.clips.filter(c => c.e === e && val(c, mode) != null);
-        let lo, hi;
-        if (mode === "S") { const v = cs.map(c => c.S).sort((a, b) => a - b); lo = v[0]; hi = v[v.length - 1]; const pd = (hi - lo) * .04; lo -= pd; hi += pd; }
-        else { lo = 0.9; hi = 3.1; }
-        const xs = v => pad.l + (W - pad.l - pad.r) * (v - lo) / (hi - lo);
-        const cy = pad.t + li * laneH + laneH / 2, half = laneH / 2 - 8;
-        const placed = [];
-        cs.map(c => ({ c, x: xs(val(c, mode)) })).sort((a, b) => a.x - b.x).forEach(o => {
-          let best = 0;
-          for (let k = 0; k < 400; k++) {
-            const off = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * r * 0.9;
-            if (Math.abs(off) > half) { best = (Math.random() * 2 - 1) * half; break; }
-            if (!placed.some(q => Math.abs(q.x - o.x) < 2 * r && Math.abs(q.y - (cy + off)) < 2 * r)) { best = off; break; }
-          }
-          o.y = cy + best; placed.push(o); out[o.c.id] = [o.x, o.y];
+        const cs = data.clips.filter(c => c.e === e).sort((a, b) => a.id < b.id ? -1 : 1);
+        s += `<text x="0" y="${y + 14}" font-size="13.5" font-weight="700" fill="var(--ink)" font-family="IBM Plex Sans">${name}</text><text x="${pad.l}" y="${y + 14}" font-size="10.5" fill="var(--ink-3)" font-family="IBM Plex Mono">${cs.length} clips</text>`;
+        y += headH;
+        ROWS.forEach((r, ri) => {
+          const vs = cs.map(c => val(c, r.k));
+          const ord = cs.map((c, i) => i).sort((a, b) => vs[a] - vs[b] || (cs[a].id < cs[b].id ? -1 : 1));
+          // tied VLM scores sit in one block; a small gap separates blocks
+          let groups = 0; ord.forEach((i, j) => { if (j && vs[i] !== vs[ord[j - 1]]) groups++; });
+          const gp = r.ours ? 0 : 3, cw = (sw - groups * gp) / cs.length;
+          let x = pad.l, prev = null;
+          const rw = rho(r, li);
+          if (r.ours) s += `<rect x="${pad.l - 4}" y="${y - 3}" width="${sw + 8}" height="${rowH + 6}" rx="5" fill="none" stroke="var(--rigis)" stroke-width="2"/>`;
+          s += `<text x="${pad.l - 12}" y="${y + rowH * 0.72}" text-anchor="end" font-size="${r.ours ? 12.5 : 11.5}" font-weight="${r.ours ? 700 : 500}" fill="${r.ours ? "var(--rigis)" : "var(--ink-2)"}" font-family="IBM Plex Sans">${r.t}</text>`;
+          const bx = W - pad.r + 14, bw = pad.r - 58;
+          s += `<rect x="${bx}" y="${y + 3}" width="${bw}" height="${rowH - 6}" rx="3" fill="var(--sunken)"/>`;
+          s += `<rect class="rb" data-w="${bw * rw}" x="${bx}" y="${y + 3}" width="0" height="${rowH - 6}" rx="3" fill="${r.ours ? "var(--rigis)" : "var(--ink-3)"}"/>`;
+          s += `<text class="rt" x="${bx + bw + 6}" y="${y + rowH * 0.72}" font-size="11.5" font-weight="${r.ours ? 700 : 500}" fill="${r.ours ? "var(--rigis)" : "var(--ink-2)"}" font-family="IBM Plex Mono" opacity="0">${rw.toFixed(2)}</text>`;
+          ord.forEach((i, j) => {
+            if (j && vs[i] !== prev) x += gp;
+            prev = vs[i];
+            const c = cs[i], x0 = pad.l + i * (sw / cs.length);
+            const tip = `<b>Clip ${c.id}</b> · ${c.e.replace("_", "-")}<br>Humans: <b>${HN[c.h]}</b><br>${r.ours ? `RIGIS ${c.S.toFixed(3)}` : `${r.t}: ${c.v[r.k].join(" / ")}`}`;
+            cells.push({ x0, x1: x, delay: ri * 140 + li * 90 });
+            s += `<rect class="cl" data-tip="${esc(tip)}" x="${x0}" y="${y}" width="${Math.max(1, cw - 0.6)}" height="${rowH}" fill="${HC[c.h]}"/>`;
+            x += cw;
+          });
+          y += rowH + gapRow + (r.ours ? 6 : 0);
         });
-        const med = [1, 2, 3].map(h => { const v = cs.filter(c => c.h === h).map(c => val(c, mode)).sort((a, b) => a - b); return v.length ? xs(v[Math.floor(v.length / 2)]) : null; });
-        meta.push({ name, cy, half, lo, hi, xs, med, n: cs.length });
+        y += laneGap - gapRow;
       });
-      return { out, meta, pad, laneH, r, H: pad.t + LANES.length * laneH + 30 };
-    }
-    function draw() {
-      const W = svg.clientWidth || 800, L = layout(W);
-      svg.setAttribute("viewBox", `0 0 ${W} ${L.H}`); svg.style.height = L.H + "px";
-      let s = "";
-      L.meta.forEach((m, i) => {
-        s += `<rect x="${L.pad.l - 6}" y="${m.cy - m.half - 4}" width="${W - L.pad.l - L.pad.r + 12}" height="${2 * m.half + 8}" rx="8" fill="var(--sunken)" opacity=".55"/>`;
-        s += `<text x="${L.pad.l - 14}" y="${m.cy + 4}" text-anchor="end" font-size="13" font-weight="600" fill="var(--ink)" font-family="IBM Plex Sans">${m.name}</text>`;
-        s += `<text x="${L.pad.l - 14}" y="${m.cy + 19}" text-anchor="end" font-size="10.5" fill="var(--ink-3)" font-family="IBM Plex Mono">n = ${m.n}</text>`;
-        m.med.forEach((x, h) => { if (x != null) s += `<line x1="${x}" x2="${x}" y1="${m.cy - m.half - 4}" y2="${m.cy - m.half + 6}" stroke="${HC[h + 1]}" stroke-width="3" stroke-linecap="round"/><line x1="${x}" x2="${x}" y1="${m.cy + m.half - 6}" y2="${m.cy + m.half + 4}" stroke="${HC[h + 1]}" stroke-width="3" stroke-linecap="round"/>`; });
-        if (i === L.meta.length - 1) {
-          const ticks = mode === "S" ? [] : [1, 2, 3];
-          ticks.forEach(t => { s += `<text x="${m.xs(t)}" y="${m.cy + m.half + 22}" text-anchor="middle" font-size="11" fill="var(--ink-3)" font-family="IBM Plex Mono">${t} ${["bad", "medium", "good"][t - 1]}</text>`; });
-          if (mode === "S") s += `<text x="${L.pad.l}" y="${m.cy + m.half + 22}" font-size="11" fill="var(--ink-3)" font-family="IBM Plex Sans">← lower RIGIS</text><text x="${W - L.pad.r}" y="${m.cy + m.half + 22}" text-anchor="end" font-size="11" fill="var(--ink-3)" font-family="IBM Plex Sans">higher RIGIS →</text>`;
-        }
-        if (mode === "S") s += `<text x="${L.pad.l}" y="${m.cy - m.half + 8}" font-size="10" fill="var(--ink-3)" font-family="IBM Plex Mono">${m.lo.toFixed(2)}</text><text x="${W - L.pad.r}" y="${m.cy - m.half + 8}" text-anchor="end" font-size="10" fill="var(--ink-3)" font-family="IBM Plex Mono">${m.hi.toFixed(2)}</text>`;
-      });
-      const feat = data.featured || {};
-      data.clips.forEach(c => {
-        const p = L.out[c.id]; if (!p) return;
-        const runs = k => (c.v[k] || []).join(" / ") || "–";
-        const tip = `<b>Clip ${c.id}</b> · ${c.m === "ctrlworld" ? "Ctrl-World" : "DreamGen"} · ${c.e.replace("_", "-")}<br>Humans: <b>${HN[c.h]}</b> · RIGIS ${c.S.toFixed(3)} (geo ${c.g.toFixed(2)}, pose ${c.p.toFixed(2)})<br>Gemma + CoT runs: ${runs("gemma_cot")} · Gemini + CoT: ${runs("gemini_cot")}${feat[c.id] ? "<br><i>Open in the RIGIS lab ↗</i>" : ""}`;
-        s += `<circle class="dot${feat[c.id] ? " f" : ""}" data-id="${c.id}" data-tip="${esc(tip)}" cx="${p[0]}" cy="${p[1]}" r="${feat[c.id] ? L.r + 1.6 : L.r}" fill="${HC[c.h]}" ${feat[c.id] ? 'stroke="var(--ink)" stroke-width="2"' : 'stroke="var(--surface)" stroke-width=".8"'}/>`;
-      });
+      const H = y - laneGap + 10;
+      svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.style.height = H + "px";
       svg.innerHTML = s;
-      const ids = data.clips.map(c => c.id).filter(id => L.out[id]);
-      const now = ids.map(id => L.out[id]);
-      if (pos) {
-        const from = ids.map(id => pos[id] || L.out[id]);
-        const els = ids.map(id => svg.querySelector(`circle[data-id="${id}"]`));
-        tween(from.flat(), now.flat(), 850, v => els.forEach((e, i) => { e.setAttribute("cx", v[2 * i]); e.setAttribute("cy", v[2 * i + 1]); }));
-      }
-      pos = L.out;
+      L = { cells, rects: [...svg.querySelectorAll("rect.cl")], bars: [...svg.querySelectorAll("rect.rb")], txt: [...svg.querySelectorAll("text.rt")] };
     }
-    svg.addEventListener("click", e => {
-      const d = e.target.closest("circle.f"); if (!d) return;
-      document.dispatchEvent(new CustomEvent("rw-rigis-open", { detail: d.dataset.id }));
-      const lab = document.getElementById("rigisLab"); if (lab) lab.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    const ease = u => u < 0.5 ? 4 * u * u * u : 1 - (-2 * u + 2) ** 3 / 2;
+    function frame(t) {
+      const SORT = 1300, ROWD = 900;
+      L.cells.forEach((c, i) => { const u = ease(Math.max(0, Math.min(1, (t - c.delay) / SORT))); L.rects[i].setAttribute("x", c.x0 + (c.x1 - c.x0) * u); });
+      const bu = ease(Math.max(0, Math.min(1, (t - SORT - ROWD) / 700)));
+      L.bars.forEach(b => b.setAttribute("width", +b.dataset.w * bu));
+      L.txt.forEach(e => e.setAttribute("opacity", bu));
+      const step = card.querySelector(".lat-step");
+      if (step) step.textContent = t < 250 ? "Clips in arbitrary order" : t < SORT + ROWD ? "Sorting by each scorer" : "Red left, green right means the scorer agrees with people";
+      return t < SORT + ROWD + 700;
+    }
+    function play() {
+      cancelAnimationFrame(raf); played = true;
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) { frame(1e9); return; }
+      const t0 = performance.now(); frame(0);
+      const tick = now => { if (frame(now - t0)) raf = requestAnimationFrame(tick); };
+      raf = requestAnimationFrame(tick);
+    }
     fetch("data/rigis_all.json").then(r => r.json()).then(d => {
       data = d; window.RW_RIGIS_ALL = d;
-      U.seg(document.getElementById("swMode"), MODES, "S", k => { mode = k; draw(); });
-      draw(); tipHost(svg);
-      addEventListener("resize", U.debounce(() => { pos = null; draw(); }, 150));
+      build(); frame(0); tipHost(svg);
+      card.insertAdjacentHTML("beforeend", `<div class="lat-bar"><span class="lat-step"></span><button type="button" class="lat-replay">Replay</button></div>`);
+      card.querySelector(".lat-replay").addEventListener("click", play);
+      frame(0);
+      new IntersectionObserver((es, io) => es.forEach(e => { if (e.isIntersecting) { io.disconnect(); play(); } }), { threshold: 0.35 }).observe(svg);
+      addEventListener("resize", U.debounce(() => { build(); frame(played ? 1e9 : 0); }, 150));
     }).catch(e => console.error("swarm", e));
   }
 

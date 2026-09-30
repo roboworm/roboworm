@@ -198,7 +198,7 @@
 
       <h3 class="sub"><span class="k">Tab. 1</span>Where RoboWorM sits among video world model benchmarks</h3>
       <div class="tbl-wrap"><table class="t" id="tab1"></table></div>
-      <p class="cap">Hybrid combines off-the-shelf algorithms and a VLM; IK / Sim is inverse kinematics plus simulation; Prior Alg. is a deterministic algorithm driven by dataset priors (camera calibration, robot proprioception, actions).</p>
+      <p class="cap">Coverage counts the four capability columns (multi-view, long-horizon, cross-view geometry, speed-up audit). Hybrid combines off-the-shelf algorithms and a VLM; IK / Sim is inverse kinematics plus simulation; Prior Alg. is a deterministic algorithm driven by dataset priors (camera calibration, robot proprioception, actions).</p>
     </div>
   </div>
 </section>
@@ -364,15 +364,12 @@
 
       <div class="rq">
         <div class="q">RQ1 · Every multi-view rating</div>
-        <h3>300 rated clips, sorted by RIGIS and by a VLM judge</h3>
+        <h3>RIGIS sorts clips the way people do; VLM judges do not</h3>
         <div class="card chartcard">
-          <div class="controls">
-            <div><label class="l">Order clips by</label><div class="seg" id="swMode" role="group" aria-label="Scorer"></div></div>
-          </div>
-          <svg id="swarm" role="img" aria-label="Each dot is one multi-view clip, placed by the chosen scorer and colored by the human label"></svg>
-          <div class="fam"><span><i style="background:var(--bad)"></i>Humans: bad</span><span><i style="background:var(--med)"></i>medium</span><span><i style="background:var(--good)"></i>good</span><span><i class="ring"></i>clip in the RIGIS lab</span></div>
+          <svg id="swarm" role="img" aria-label="For each morphology, the 100 clips sorted by RIGIS and by four VLM judges, each cell colored by the human label"></svg>
+          <div class="fam"><span><i style="background:var(--bad)"></i>Humans: bad</span><span><i style="background:var(--med)"></i>medium</span><span><i style="background:var(--good)"></i>good</span></div>
         </div>
-        <p class="cap">One dot per clip, one lane per morphology; the VLM position is the mean of its three runs. Ticks mark the median of each human label.</p>
+        <p class="cap">One cell per clip, sorted from the lowest to the highest score. VLM strips use the mean of three runs; gaps separate tied scores, and ties keep clip order. ρ is from Table D5.</p>
       </div>
 
       <div class="rq">

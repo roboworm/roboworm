@@ -575,3 +575,22 @@ section.sec.sub { border-top: 0; padding-top: clamp(1.5rem, 3.5vw, 2.8rem); }
 .side ol.kids a { padding: .32rem 0 .32rem 2.1rem; font-size: .82rem; }
 .side ol.kids a span { min-width: 1.6rem; }
 .side li a.in { color: var(--ink); }
+/* Table 1: coverage pips, our row set apart, and a one-time build-up when it scrolls in */
+#tab1 th, #tab1 td { padding: .55rem .45rem; }
+#tab1 td.cov { text-align: left; }
+#tab1 .pips { display: inline-flex; gap: 2px; vertical-align: middle; margin-right: .4rem; }
+#tab1 .pips i { width: 11px; height: 8px; border-radius: 2px; background: var(--sunken); box-shadow: inset 0 0 0 1px var(--line); }
+#tab1 .pips i.on { background: var(--ink-3); box-shadow: none; }
+#tab1 td.cov b { font: 500 .74rem/1 var(--f-mono); color: var(--ink-3); }
+#tab1 tr.ours td { background: var(--audit-bg); border-top: 2px solid var(--audit); border-bottom: 2px solid var(--audit); font-size: .9rem; }
+#tab1 tr.ours td:first-child { box-shadow: inset 5px 0 0 var(--audit); padding-left: .9rem; }
+#tab1 tr.ours .y { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--good); color: #fff; font-size: .8rem; }
+#tab1 tr.ours .pips i { width: 14px; height: 10px; }
+#tab1 tr.ours .pips i.on { background: var(--audit); }
+#tab1 tr.ours td.cov b { color: var(--audit); font-size: .9rem; font-weight: 700; }
+#tab1.anim tbody tr:not(.grp) { opacity: 0; transform: translateY(8px); transition: opacity .45s ease var(--d), transform .45s ease var(--d); }
+#tab1.anim .pips i.on { transform: scaleX(0); transform-origin: left; transition: transform .3s ease calc(var(--d) + .25s + var(--i) * .1s); }
+#tab1.anim tr.ours .y { transform: scale(0); transition: transform .5s cubic-bezier(.3, 1.7, .5, 1) calc(var(--d) + .3s + var(--i) * .18s); }
+#tab1.anim.go tbody tr:not(.grp), #tab1.anim.go .pips i.on, #tab1.anim.go tr.ours .y { opacity: 1; transform: none; }
+#tab1.anim.go tr.ours .pips { animation: covPop .6s ease calc(var(--d) + 1.1s) 1 both; }
+@keyframes covPop { 0%, 100% { transform: none; } 45% { transform: scale(1.25); } }
