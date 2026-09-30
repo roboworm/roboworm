@@ -3,8 +3,8 @@
 (function () {
   const U = window.RW;
   const SAMPLES = [
-    { id: "halluc_arm", label: "Humanoid, right arm", group: "halluc" },
     { id: "halluc_severe", label: "Bimanual, severe", group: "halluc" },
+    { id: "halluc_arm", label: "Humanoid, kettle", group: "halluc" },
     { id: "halluc_bimanual", label: "Bimanual", group: "halluc" },
     { id: "halluc_humanoid", label: "Humanoid", group: "halluc" },
     { id: "halluc_single_arm", label: "Single-arm", group: "halluc" },
@@ -350,7 +350,7 @@
   }
   const LSTEPS = [
     { k: "tok", li: "Cut the frame into 24×24 patch tokens", eq: "\\(\\mathcal{F}_\\tau = \\mathrm{DINOv3}(I_\\tau)\\)" },
-    { k: "att", li: "Keypoint queries attend to the tokens", eq: "\\(\\hat{\\mathbf{x}}_0 = g_\\theta(\\mathbf{x}_t, t, \\mathcal{F})\\)" },
+    { k: "att", li: "Keypoint queries read the patch tokens", eq: "\\(\\hat{\\mathbf{x}}_0 = g_\\theta(\\mathbf{x}_t, t, \\mathcal{F})\\)" },
     { k: "den", li: "Denoise five runs and keep their mean", eq: "\\(\\mathbf{P} = \\mathcal{W}^{-1}\\Big(\\tfrac{1}{N}\\sum_{n=1}^{N} \\hat{\\mathbf{x}}_0^{(n)}\\Big)\\)" },
     { k: "rig", li: "Measure every bone against its URDF length", eq: "\\(r_\\tau = \\lambda \\max_{(a,b)\\in\\mathcal{B}} \\big|\\,\\|\\mathbf{P}_{\\tau a}-\\mathbf{P}_{\\tau b}\\|_2 - L_{ab}\\big|\\)" },
     { k: "adv", li: "Advance, and run the jerk stencil along each trail", eq: "\\(j_\\tau = \\tfrac{\\lambda}{\\Delta t^3}\\max_k \\|\\mathbf{P}_{\\tau k} - 3\\mathbf{P}_{\\tau-1,k} + 3\\mathbf{P}_{\\tau-2,k} - \\mathbf{P}_{\\tau-3,k}\\|_2\\)" },
@@ -469,7 +469,7 @@
       d.worstJ = d.err.map(e => e.reduce((w, x, j) => Math.abs(x) > Math.abs(e[w]) ? j : w, 0));
       d.sprite = { cols: 4, fw: 0, fh: 0 };
     }
-    picker(f("picker"), show, "halluc_arm");
+    picker(f("picker"), show, "halluc_severe");
 
     /* ---------- drawing helpers ---------- */
     function contain(ar, x, y, w, h) { let fw = w, fh = w / ar; if (fh > h) { fh = h; fw = h * ar; } return { x: x + (w - fw) / 2, y: y + (h - fh) / 2, w: fw, h: fh }; }
@@ -574,14 +574,14 @@
           d.topK[k].forEach(i => { const p = tokXY(i, F); ctx.globalAlpha = 0.35 + 0.65 * a[i] / 255; seg(p, dst, DK.kiva, 0.8 + 2.2 * a[i] / 255); dot(p, 3, DK.kiva); });
           ctx.globalAlpha = 1;
           text(`query ${k + 1}`, dst[0] + 9, dst[1] - 8, { font: "600 12px 'IBM Plex Sans', sans-serif", col: DK.kiva });
-          pill = `Query ${k + 1} of ${d.K} attends`;
+          pill = `Patches that move query ${k + 1} of ${d.K}`;
         } else {
           ctx.globalAlpha = 0.45 * split;
           P.forEach((p, q) => seg(tokXY(d.top1[q], F), proj(p, S), DK.kiva, 1));
           ctx.globalAlpha = 1;
-          pill = "All keypoint queries attend";
+          pill = "Patches the keypoints depend on";
         }
-        text(d.attn_head ? `attention of decoder block ${d.attn_head[0] + 1}, head ${d.attn_head[1] + 1}` : "attention on the tokens, mean of heads", F.x + 10, F.y + F.h - 12, { col: DK.ink2 });
+        text(`blur test: brighter patches move the keypoints more (up to ${d.occ_mm_max} mm)`, F.x + 10, F.y + F.h - 12, { col: DK.ink2 });
         text("each query becomes a 3-D keypoint", S.x + S.w / 2, S.y + S.h - 6, { align: "center", col: DK.ink2 });
       }
       if (ph === "den") {
@@ -789,7 +789,7 @@
       if (playing) step(dt * speed);
       draw();
     })(last);
-    show("halluc_arm");
+    show("halluc_severe");
   }
 
   document.addEventListener("DOMContentLoaded", () => { hero(); lab(); });
