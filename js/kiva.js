@@ -3,6 +3,7 @@
 (function () {
   const U = window.RW;
   const SAMPLES = [
+    { id: "halluc_arm", label: "Humanoid, right arm", group: "halluc" },
     { id: "halluc_severe", label: "Bimanual, severe", group: "halluc" },
     { id: "halluc_bimanual", label: "Bimanual", group: "halluc" },
     { id: "halluc_humanoid", label: "Humanoid", group: "halluc" },
@@ -468,7 +469,7 @@
       d.worstJ = d.err.map(e => e.reduce((w, x, j) => Math.abs(x) > Math.abs(e[w]) ? j : w, 0));
       d.sprite = { cols: 4, fw: 0, fh: 0 };
     }
-    picker(f("picker"), show, "halluc_severe");
+    picker(f("picker"), show, "halluc_arm");
 
     /* ---------- drawing helpers ---------- */
     function contain(ar, x, y, w, h) { let fw = w, fh = w / ar; if (fh > h) { fh = h; fw = h * ar; } return { x: x + (w - fw) / 2, y: y + (h - fh) / 2, w: fw, h: fh }; }
@@ -483,7 +484,7 @@
       for (let i = 0; i < g * g; i++) {
         const v = a[i] / 255, c = heatRGB(v);
         img.data[i * 4] = c[0]; img.data[i * 4 + 1] = c[1]; img.data[i * 4 + 2] = c[2];
-        img.data[i * 4 + 3] = Math.round(255 * Math.min(1, Math.pow(v, 1.3) * 1.2));
+        img.data[i * 4 + 3] = Math.round(255 * Math.min(1, Math.pow(v, 2) * 1.4));
       }
       hctx.putImageData(img, 0, 0);
       ctx.save(); ctx.globalAlpha = alpha; ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
@@ -580,7 +581,7 @@
           ctx.globalAlpha = 1;
           pill = "All keypoint queries attend";
         }
-        text("attention on the tokens", F.x + 10, F.y + F.h - 12, { col: DK.ink2 });
+        text(d.attn_head ? `attention of decoder block ${d.attn_head[0] + 1}, head ${d.attn_head[1] + 1}` : "attention on the tokens, mean of heads", F.x + 10, F.y + F.h - 12, { col: DK.ink2 });
         text("each query becomes a 3-D keypoint", S.x + S.w / 2, S.y + S.h - 6, { align: "center", col: DK.ink2 });
       }
       if (ph === "den") {
@@ -788,7 +789,7 @@
       if (playing) step(dt * speed);
       draw();
     })(last);
-    show("halluc_severe");
+    show("halluc_arm");
   }
 
   document.addEventListener("DOMContentLoaded", () => { hero(); lab(); });
