@@ -334,6 +334,14 @@
      next check starts. The first check runs in full, later ones quickly, and the segment ends
      with calibration. The side widgets fill in as frames are processed. */
   const DK = { ink: "#e8eef6", ink2: "#a9b8c9", ink3: "#6f8196", grid: "rgba(255,255,255,.10)", kiva: "#38bdf8", good: "#3ddc84", amber: "#ffc233", bad: "#ff5a4f", jerk: "#ff8a50", panel: "rgba(8,12,17,.82)" };
+  // single arm (a1x_ee has only gripper keypoints): two more links in the skeleton's own style, so it reads as an arm.
+  // forearm continues the gripper axis back from the wrist; upper arm points toward a shoulder above the base (origin)
+  function armExt(P) {
+    const L = Math.hypot(...[0, 1, 2].map(j => P[0][j] - P[1][j]));
+    const u = [0, 1, 2].map(j => (P[0][j] - P[1][j]) / L), el = [0, 1, 2].map(j => P[0][j] + u[j] * L);
+    const v = [-el[0], -el[1], 120 - el[2]], m = Math.hypot(...v) || 1;
+    return [el, [0, 1, 2].map(j => el[j] + v[j] / m * L)];
+  }
   const RUNC = ["#38bdf8", "#b388ff", "#ffb74d", "#69f0ae", "#f472b6"];
   const rgbS = a => `rgb(${a.map(Math.round).join(",")})`;
   const dkRamp = x => {
@@ -509,7 +517,10 @@
       // (least squares up to scale and shift), so the 3-D panel reads like the camera view
       const ar = d.width / d.height, live = d.kpW.map(w => w >= 0.4), mid = d.mean5[d.mean5.length >> 1];
       const Hs = d.hot.map(h => [h[0] * ar, h[1]]).filter((_, k) => live[k]);
-      const scr = (p, yaw, el) => { const x = p[0] - d.center[0], y = p[1] - d.center[1], z = p[2] - d.center[2], c = Math.cos(yaw), sn = Math.sin(yaw);
+      const extra = d.robot === "single_arm" ? d.mean5.flatMap(armExt) : [];
+      d.vc = d.center;
+      if (extra.length) { const all = d.mean5.flat().concat(extra); d.vc = [0, 1, 2].map(j => (Math.min(...all.map(p => p[j])) + Math.max(...all.map(p => p[j]))) / 2); }
+      const scr = (p, yaw, el) => { const x = p[0] - d.vc[0], y = p[1] - d.vc[1], z = p[2] - d.vc[2], c = Math.cos(yaw), sn = Math.sin(yaw);
         return [x * c - y * sn, -(z * Math.cos(el) - (x * sn + y * c) * Math.sin(el))]; };
       const cen = A => { const m = [0, 1].map(j => A.reduce((a, p) => a + p[j], 0) / A.length); return A.map(p => [p[0] - m[0], p[1] - m[1]]); };
       const Hc = cen(Hs), hh2 = Hc.reduce((a, p) => a + p[0] ** 2 + p[1] ** 2, 0);
@@ -523,7 +534,7 @@
       d.fitYaw = best[1]; d.fitEl = best[2]; d.fitRes = best[0];
       // half extents on screen over the sway around that angle, so the skeleton is drawn as large as the panel allows
       let hw = 1, hh = 1;
-      for (let a = -SWAY; a <= SWAY + 1e-6; a += SWAY / 4) d.mean5.forEach(P => P.forEach(p => { const q = scr(p, d.fitYaw + a, d.fitEl); hw = Math.max(hw, Math.abs(q[0])); hh = Math.max(hh, Math.abs(q[1])); }));
+      for (let a = -SWAY; a <= SWAY + 1e-6; a += SWAY / 4) d.mean5.flat().concat(extra).forEach(p => { const q = scr(p, d.fitYaw + a, d.fitEl); hw = Math.max(hw, Math.abs(q[0])); hh = Math.max(hh, Math.abs(q[1])); });
       d.fitW = hw; d.fitH = hh;
     }
     picker(f("picker"), show, "halluc_severe");
@@ -549,8 +560,8 @@
     }
     const tokXY = (i, R) => [R.x + ((i % d.grid) + 0.5) * R.w / d.grid, R.y + (Math.floor(i / d.grid) + 0.5) * R.h / d.grid];
     function proj(p, S) {
-      const s = S.sc;
-      const x = p[0] - d.center[0], y = p[1] - d.center[1], z = p[2] - d.center[2];
+      const s = S.sc, c = d.vc;
+      const x = p[0] - c[0], y = p[1] - c[1], z = p[2] - c[2];
       const cy = Math.cos(view.yaw), sy = Math.sin(view.yaw);
       const xr = x * cy - y * sy, yr = x * sy + y * cy;
       const v = z * Math.cos(view.el) - yr * Math.sin(view.el);
@@ -564,7 +575,7 @@
       ctx.fillStyle = o.col || DK.ink; ctx.fillText(s, x, y);
     }
     function floor(S, alpha) {
-      const g = Math.min(d.R * 0.9, d.fitW * 1.05), z0 = d.zmin - d.R * 0.04, c = d.center;
+      const g = Math.min(d.R * 0.9, d.fitW * 1.05), z0 = d.zmin - d.R * 0.04, c = d.vc;
       ctx.save(); ctx.beginPath(); ctx.rect(S.x, S.y, S.w, S.h); ctx.clip();
       for (let k = -4; k <= 4; k++) {
         const t = k / 4 * g;
@@ -598,6 +609,7 @@
     function skel(i, S, o = {}) {
       const P = d.mean5[i], rigidSet = new Set(d.rigid.map(([a, b]) => a + "-" + b));
       ctx.lineCap = "round";
+      if (d.robot === "single_arm") { const [e, s] = armExt(P), w = proj(P[0], S), E = proj(e, S), Sp = proj(s, S); seg(w, E, "#c9d5e3", 4.2); seg(E, Sp, "#c9d5e3", 4.2); dot(E, 3.8, "#0d1116", DK.ink); dot(Sp, 3.8, "#0d1116", DK.ink); }
       d.drawn.forEach(([a, b]) => { if (!rigidSet.has(a + "-" + b)) seg(proj(P[a], S), proj(P[b], S), DK.ink3, 2); });
       const gap = d.robot === "single_arm" ? 3 : -1; // a1x_ee: wrist, palm, two fingertips; bone 3 is the fingertip gap
       d.rigid.forEach(([a, b], j) => { const c = o.boneCol ? o.boneCol(j) : null; seg(proj(P[a], S), proj(P[b], S), c || "#c9d5e3", j === gap ? 1.6 : c && o.wide === j ? 6.5 : 4.2, j === gap ? [4, 4] : null); });
@@ -734,13 +746,18 @@
       }));
       const boneA = Math.max(0, 1 - noise / 0.3) * (1 - merge * 0.75);
       P.forEach((Q, n) => {
-        if (boneA > 0) { ctx.globalAlpha = boneA; d.drawn.forEach(([x, y]) => seg(proj(Q[x], S), proj(Q[y], S), RUNC[n], 1.8)); }
+        if (boneA > 0) {
+          ctx.globalAlpha = boneA; d.drawn.forEach(([x, y]) => seg(proj(Q[x], S), proj(Q[y], S), RUNC[n], 1.8));
+          // the extra links ride on the run's wrist, so each run's arm shifts with its gripper at the same exaggerated scale
+          if (d.robot === "single_arm") { const X = armExt(M), o = [0, 1, 2].map(j => Q[0][j] - M[0][j]), [e, s] = X.map(p => p.map((v, j) => v + o[j])); seg(proj(Q[0], S), proj(e, S), RUNC[n], 1.8); seg(proj(e, S), proj(s, S), RUNC[n], 1.8); dot(proj(e, S), 2.8, RUNC[n]); dot(proj(s, S), 2.8, RUNC[n]); }
+        }
         ctx.globalAlpha = noise > 0.3 ? 0.9 : 0.95 * (1 - merge * 0.6);
         Q.forEach(p => dot(proj(p, S), noise > 0.3 ? 2.4 : 2.8, RUNC[n]));
       });
       if (merge > 0) {
         ctx.globalAlpha = merge;
         d.drawn.forEach(([x, y]) => seg(proj(M[x], S), proj(M[y], S), DK.ink, 3.4));
+        if (d.robot === "single_arm") { const [e, s] = armExt(M); seg(proj(M[0], S), proj(e, S), DK.ink, 3.4); seg(proj(e, S), proj(s, S), DK.ink, 3.4); dot(proj(e, S), 3.2, "#0d1116", DK.ink); dot(proj(s, S), 3.2, "#0d1116", DK.ink); }
         M.forEach(p => dot(proj(p, S), 3.2, "#0d1116", DK.ink));
       }
       ctx.globalAlpha = 1;
