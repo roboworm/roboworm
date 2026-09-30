@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>RoboWorM</title>
+<meta name="description" content="RoboWorM: a deployment-aware benchmark that audits kinematic stability (KIVA), multi-view consistency (RIGIS) and inference acceleration in robotic video world models.">
+<meta property="og:title" content="RoboWorM: Evaluating Movement Realism, Consistency and Acceleration Affects in Embodied Video World Models">
+<meta property="og:description" content="1,605 episodes, 3 embodiments, 3 world models, 9 acceleration methods, 29k rollouts. Two VLM-free physics metrics: KIVA and RIGIS.">
+<meta property="og:image" content="assets/fig/fig1.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f3a5f'/%3E%3Cpath d='M8 24 13 12 21 15 25 8' stroke='%23fff' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='13' cy='12' r='2.6' fill='%23fff'/%3E%3Ccircle cx='21' cy='15' r='2.6' fill='%23f0935a'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<script>
+  document.documentElement.classList.add("js");
+  window.MathJax = { tex: { inlineMath: [["\\(", "\\)"]] }, svg: { fontCache: "global" }, startup: { typeset: true } };
+</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"></script>
+</head>
+<body>
+
+<div id="progress" aria-hidden="true"></div>
+<aside class="side" aria-label="Contents">
+  <a class="side-mark" href="#top"><span class="mark">RoboWorM</span><small>ICLR 2027 submission · under double-blind review</small></a>
+  <div class="side-cap">Contents</div>
+  <ol>
+    <li><a href="#abstract" style="--c:var(--ink)"><span>01</span>Abstract</a></li>
+    <li><a href="#benchmark" style="--c:var(--data)"><span>02</span>Benchmark</a></li>
+    <li><a href="#kiva" style="--c:var(--kiva)"><span>03</span>KIVA</a></li>
+    <li><a href="#rigis" style="--c:var(--rigis)"><span>04</span>RIGIS</a></li>
+    <li><a href="#results" style="--c:var(--audit)"><span>05</span>Human alignment</a></li>
+    <li><a href="#models" style="--c:var(--navy)"><span>06</span>World models</a></li>
+    <li><a href="#acceleration" style="--c:var(--accel)"><span>07</span>Acceleration</a></li>
+    <li><a href="#limits" style="--c:var(--ink-2)"><span>08</span>Limitations</a></li>
+    <li><a href="#bibtex" style="--c:var(--ink)"><span>09</span>BibTeX</a></li>
+  </ol>
+  <div class="side-foot">
+    <div class="row"><a class="btn" href="#bibtex">BibTeX</a><button class="btn theme-btn" type="button" aria-label="Toggle color theme">Theme</button></div>
+  </div>
+</aside>
+
+<nav class="nav" aria-label="Sections">
+  <div class="wrap">
+    <a class="mark" href="#top">RoboWorM</a>
+    <ul>
+      <li><a class="l" href="#abstract">Abstract</a></li>
+      <li><a class="l" href="#benchmark">Benchmark</a></li>
+      <li><a class="l" href="#kiva">KIVA</a></li>
+      <li><a class="l" href="#rigis">RIGIS</a></li>
+      <li><a class="l" href="#results">Human alignment</a></li>
+      <li><a class="l" href="#acceleration">Acceleration</a></li>
+      <li><a class="l" href="#bibtex">BibTeX</a></li>
+    </ul>
+    <button class="theme-btn" type="button" aria-label="Toggle color theme">Theme</button>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="gutter" aria-hidden="true" id="gutter"></div>
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <div class="chips-top"><span class="hot">ICLR 2027 · under review</span><span>Video world models</span><span>Physics audit</span><span>Inference acceleration</span></div>
+        <h1><span class="mark">RoboWorM</span>: Evaluating Movement Realism, Consistency and Acceleration Affects in Embodied Video <u>Wor</u>ld <u>M</u>odels</h1>
+        <p class="authors"><b>Anonymous authors</b> · Paper under double-blind review</p>
+        <p class="thesis">A generated robot video can look fine to a VLM judge and still show a forearm that stretched by 88&nbsp;mm. RoboWorM checks rollouts against what a deployment already knows: <em>the robot's kinematic tree</em> and <em>the fixed camera rig</em>.</p>
+        <div class="btns">
+          <a class="btn primary" href="#kiva"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 2.5v11l10-5.5z" stroke-linejoin="round"/></svg>Try KIVA on a rollout</a>
+          <span class="btn" aria-disabled="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 1.5h5.5L12.5 4.5v10h-8.5z M9.5 1.5v3h3"/></svg>Paper <small>on acceptance</small></span>
+          <span class="btn" aria-disabled="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5.5 4 2 8l3.5 4M10.5 4 14 8l-3.5 4"/></svg>Code <small>on acceptance</small></span>
+          <span class="btn" aria-disabled="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="8" cy="4" rx="5.5" ry="2"/><path d="M2.5 4v8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2V4M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2"/></svg>Benchmark <small>on acceptance</small></span>
+        </div>
+      </div>
+
+      <div class="audit" id="heroAudit" aria-label="What RoboWorM measures, on real rollouts">
+        <div class="tease-tabs" id="teaseTabs" role="tablist" aria-label="Teaser">
+          <button type="button" role="tab" data-t="kiva" aria-selected="true" style="--c:var(--kiva)"><b>KIVA</b><span>kinematics in one view</span><i></i></button>
+          <button type="button" role="tab" data-t="rigis" aria-selected="false" style="--c:var(--rigis)"><b>RIGIS</b><span>geometry across views</span><i></i></button>
+          <button type="button" role="tab" data-t="accel" aria-selected="false" style="--c:var(--accel)"><b>Acceleration</b><span>speed against physics</span><i></i></button>
+        </div>
+        <div class="tease-body">
+        <div class="tease-pane on" data-pane="kiva" style="--acc:var(--kiva)">
+        <div class="audit-head"><span class="live" aria-hidden="true"></span><span class="grow" data-f="head">KIVA audit</span><span data-f="t" class="mono num"></span></div>
+        <div class="audit-body">
+          <div class="vbox"><video muted playsinline loop autoplay preload="auto" data-f="video"></video></div>
+          <div class="skel"><canvas data-f="skel" aria-label="Predicted 3-D skeleton; drag to rotate"></canvas><span class="tag">Reader's 3-D skeleton · drag</span></div>
+        </div>
+        <div class="timeline"><svg data-f="tl" role="img" aria-label="KIVA score of every 16-frame segment"></svg></div>
+        <p class="take" data-f="take" aria-live="polite"></p>
+        <div class="verdicts">
+          <div class="verdict" data-v="human"><div class="who">Human raters</div><div class="what"></div><div class="why">Two annotators, adjudicated</div></div>
+          <div class="verdict" data-v="vlm"><div class="who">VLM judge · 3 runs</div><div class="what"></div><div class="why"></div></div>
+          <div class="verdict" data-v="kiva"><div class="who">KIVA</div><div class="what"></div><div class="why"></div></div>
+        </div>
+        <div class="picker" data-f="picker" role="group" aria-label="Choose a rollout"></div>
+        </div>
+
+        <div class="tease-pane" data-pane="rigis" style="--acc:var(--rigis)">
+          <div class="audit-head"><span class="live" aria-hidden="true"></span><span class="grow">Bimanual · clip 00096 · two fixed cameras</span><span data-g="t" class="mono num"></span></div>
+          <div class="vbox rv"><video muted playsinline loop preload="auto" data-g="video" data-src="assets/rigis/00096.mp4"></video><span class="vtag l">view 1</span><span class="vtag r">view 2</span></div>
+          <div class="tease-plot"><div class="ph"><span>Where VGGT-Ω puts camera 2, as rotation from its first pose</span><span class="mono">degrees</span></div><svg data-g="rot" role="img" aria-label="View 2 rotation over time for this clip and a clean clip"></svg></div>
+          <p class="take"><span class="lbl">This clip</span><span class="txt">The cameras are fixed, yet VGGT-Ω can only explain the generated views by swinging camera 2 up to <b>166°</b>. A clean clip stays within 4°. <span class="ok">RIGIS ranks it 3rd percentile, like the human raters.</span> <span class="no">Gemma 4 rated it good in all 3 runs.</span></span></p>
+          <div class="verdicts">
+            <div class="verdict"><div class="who">Human raters</div><div class="what"><span class="pill bad">Bad</span></div><div class="why">Two annotators, adjudicated</div></div>
+            <div class="verdict wrong"><div class="who">Gemma 4 31B + CoT · 3 runs</div><div class="what"><span class="pill good">Good</span><span class="pill good">Good</span><span class="pill good">Good</span></div><div class="why">All three runs call the clip good</div></div>
+            <div class="verdict"><div class="who">RIGIS</div><div class="what"><span class="pill bad">Bad</span></div><div class="why">S = 0.744, 3rd percentile of 100 bimanual clips</div></div>
+          </div>
+          <a class="tease-more" href="#rigis">Walk through RIGIS step by step →</a>
+        </div>
+
+        <div class="tease-pane" data-pane="accel" style="--acc:var(--accel)">
+          <div class="audit-head"><span class="live" aria-hidden="true"></span><span class="grow" data-g="head">DreamGen · 9 accelerators against dense</span><span class="seg tease-seg" data-g="morph" role="group" aria-label="Robot"></span></div>
+          <div class="tease-plot"><svg data-g="acc" role="img" aria-label="Per accelerator: speed-up, video quality kept, KIVA flags on single view and RIGIS on multi-view"></svg></div>
+          <p class="take"><span class="lbl">Takeaway</span><span class="txt" data-g="take"></span></p>
+          <a class="tease-more" href="#acceleration">All 12 configurations →</a>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats" aria-label="RoboWorM at a glance (Fig. 1)">
+      <div class="stat-group data">
+        <h3>(a) Dataset collection</h3>
+        <div class="stat-row">
+          <div class="stat"><b data-count="1605">1,605</b><span>episodes</span></div>
+          <div class="stat"><b data-count="1200" data-suffix="+">1,200+</b><span>prompts</span></div>
+          <div class="stat"><b>5</b><span>embodiments</span></div>
+          <div class="stat"><b>5</b><span>source datasets</span></div>
+          <div class="stat"><b>1–4</b><span>views</span></div>
+        </div>
+      </div>
+      <div class="stat-group audit">
+        <h3>(b) Physics audit</h3>
+        <div class="stat-row">
+          <div class="stat"><b>2</b><span>new metrics</span></div>
+          <div class="stat"><b data-count="25.8" data-prefix="+" data-suffix="%" data-dec="1">+25.8%</b><span>hallucination detection vs. VLMs</span></div>
+          <div class="stat"><b data-count="130" data-prefix="+" data-suffix="%">+130%</b><span>multi-view Spearman vs. VLMs</span></div>
+        </div>
+      </div>
+      <div class="stat-group accel">
+        <h3>(c) Inference acceleration</h3>
+        <div class="stat-row">
+          <div class="stat"><b>3</b><span>world models</span></div>
+          <div class="stat"><b>9</b><span>acceleration methods</span></div>
+          <div class="stat"><b data-count="29" data-suffix="k">29k</b><span>generated rollouts</span></div>
+          <div class="stat"><b data-count="2.3" data-suffix="×" data-dec="1">2.3×</b><span>max. speed-up</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+<section class="sec" id="abstract" style="--c:var(--ink)">
+  <div class="wrap">
+    <div class="sec-head"><span class="secno">Abstract</span><h2>Physics you can check without asking a VLM</h2></div>
+    <div class="indent" style="margin-top:1.4rem">
+      <div class="cols-2">
+        <div class="prose abstract">
+          <p>Video world models (VWMs) are rapidly emerging as scalable neural simulators for robotic manipulation. However, most benchmarks only evaluate them as open-world video generators, using Vision-Language Models (VLMs) that lack strict 3D spatial and kinematic reasoning. To bridge this gap, we introduce <b>RoboWorM</b>, a comprehensive, <i>deployment-aware</i> benchmark that leverages known hardware priors such as robot kinematic trees and fixed camera configurations, to systematically examine structural and spatiotemporal fidelity. RoboWorM curates 1,605 real-world episodes across single-arm, bimanual, and humanoid morphologies, spanning both Markovian and long-horizon non-Markovian tasks under single- and multi-view setups.</p>
+          <p>To explicitly measure physical consistency, we propose two deterministic, VLM-free metrics: <b>KIVA</b> for intra-view kinematic stability, and <b>RIGIS</b> for multi-view geometric consistency. By exploiting intrinsic robotic invariants, KIVA improves hallucination detection alignment with human annotations by 25.8% relative to the strongest frontier VLMs, while RIGIS achieves a 130% higher Spearman correlation with human preferences. Furthermore, since real-world deployment requires low inference latency, we utilize RoboWorM to conduct the first large-scale audit of the quality-efficiency trade-off. Evaluating 9 state-of-the-art acceleration techniques across 3 leading world models (over 29,000 generated rollouts), we demonstrate how these acceleration methods can retain superficial visual quality while silently compromising deployment-critical physical constraints. Using our metrics, we achieve 2.3× maximum inference speed-up with minimal quality loss.</p>
+        </div>
+        <figure>
+          <div class="figimg" data-zoom><img src="assets/fig/fig1.png" alt="Figure 1: overview of RoboWorM with dataset collection, physics audit and inference acceleration panels" loading="lazy"></div>
+          <figcaption class="cap"><b>Figure 1.</b> (a) 1,600+ real-world episodes and 1,200+ prompts across 5 embodiments, 1–4 views and two task horizons. (b) Two deterministic, VLM-free metrics: KIVA for kinematic stability and RIGIS for 3D geometric consistency. (c) 3 world models × 9 acceleration methods, 29k rollouts. Click to enlarge.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="benchmark" style="--c:var(--data)">
+  <div class="wrap">
+    <div class="sec-head"><span class="secno">§3.1–3.3</span><h2>The <span class="mark">RoboWorM</span> benchmark</h2></div>
+    <div class="indent">
+      <p class="lede">Five public corpora (DROID, RoboChallenge, the AIST bimanual corpus, RoboCOIN and NVIDIA GR00T Teleop GR1) give six configurations over five robots and three morphologies. Every configuration has both short Markovian tasks and long non-Markovian ones with several subgoals, and up to four synchronized cameras.</p>
+      <div class="donuts" id="donuts"></div>
+      <div class="robots" id="robots"></div>
+
+      <h3 class="sub"><span class="k">§3.2</span>Three world models, three ways of rolling out</h3>
+      <div class="card wm">
+        <div class="controls"><div class="seg" id="wmSeg" role="group" aria-label="World model"></div></div>
+        <svg id="wmSvg" viewBox="0 0 860 230" role="img" aria-label="World model rollout pipeline"></svg>
+        <p class="wm-desc" id="wmDesc"></p>
+      </div>
+
+      <h3 class="sub"><span class="k">§3.3</span>Nine acceleration methods in three families</h3>
+      <div class="lim" id="families"></div>
+
+      <h3 class="sub"><span class="k">Tab. 1</span>Where RoboWorM sits among video world model benchmarks</h3>
+      <div class="tbl-wrap"><table class="t" id="tab1"></table></div>
+      <p class="cap">Hybrid combines off-the-shelf algorithms and a VLM; IK / Sim is inverse kinematics plus simulation; Prior Alg. is a deterministic algorithm driven by dataset priors (camera calibration, robot proprioception, actions).</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="kiva" style="--c:var(--kiva)">
+  <div class="wrap">
+    <div class="sec-head"><span class="secno">§3.4.1</span><h2>KIVA: <u style="text-decoration-color:var(--kiva)">K</u>inematic <u style="text-decoration-color:var(--kiva)">I</u>nvariant <u style="text-decoration-color:var(--kiva)">V</u>iolation <u style="text-decoration-color:var(--kiva)">A</u>ssessment</h2></div>
+    <div class="indent">
+      <p class="lede">A diffusion reader trained only on real teleoperation reads 3-D robot keypoints out of the pixels. A robot's links cannot change length and its joints cannot teleport, so KIVA measures exactly those two things on what the reader sees, then asks how far outside real footage the result falls.</p>
+    </div>
+
+    <div class="lab" id="kivaLab">
+      <div class="lab-top">
+        <span class="ttl">KIVA, step by step, on real rollouts</span>
+        <div class="picker" data-f="picker" role="group" aria-label="Choose a rollout"></div>
+      </div>
+      <p class="take" data-f="take" aria-live="polite"></p>
+      <div class="steps" role="tablist" aria-label="KIVA stages" data-f="steps"></div>
+      <div class="lab-grid">
+        <div class="vbox"><video muted playsinline preload="auto" data-f="video"></video><canvas class="ov" data-f="ov"></canvas></div>
+        <div class="skel"><canvas data-f="skel" aria-label="Predicted 3-D skeleton; drag to rotate"></canvas><span class="tag" data-f="skeltag">Reader's 3-D skeleton · drag to rotate</span></div>
+      </div>
+      <div class="transport">
+        <button type="button" data-f="play" aria-label="Pause"><svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" width="3" height="9"/><rect x="7" y="1.5" width="3" height="9"/></svg></button>
+        <span class="mono num" data-f="fr">τ = 0</span>
+        <input type="range" min="0" max="15" value="0" step="1" data-f="scrub" id="kivaScrub" aria-label="Frame within the 16-frame segment">
+        <span data-f="segname" class="mono"></span>
+      </div>
+      <div class="lab-bottom">
+        <div class="explain"><h4 data-f="h"></h4><p data-f="p"></p><div class="eq" data-f="eq"></div><div class="chips" data-f="chips"></div></div>
+        <div class="plot"><div class="ph"><span data-f="plotT"></span><span data-f="plotR"></span></div><svg data-f="plot" role="img" aria-label="Per-frame measurement"></svg></div>
+      </div>
+    </div>
+    <p class="cap indent">Clips are real rollouts from the 300-video human study. Keypoints were re-read from the published checkpoints (the Denoise stage averages 5 of 32 fresh diffusion runs; the later stages use the stored mean of 5, which lies within a few millimetres of it). Per-frame curves come from that re-read; the verdict uses the stored segment score, which the re-read lands in the same band as. Attention is the reader's cross-attention over the 24×24 DINOv3 token grid, max over keypoints.</p>
+
+    <figure class="indent" style="margin-top:2rem">
+      <div class="figimg" data-zoom><img src="assets/fig/fig3.png" alt="Figure 3: KIVA training and inference pipeline, and RIGIS multi-view pipeline" loading="lazy"></div>
+      <figcaption class="cap"><b>Figure 3.</b> (a) KIVA: a shared video-conditioned reader learns from forward-kinematics targets with a Huber loss; at inference five denoised candidates are averaged before rigidity and jerk are measured and calibrated against real-video references. (b) RIGIS: VGGT-Ω estimates depth and cameras for geometric consistency \(S_{\text{geo}}\) and camera pose stability \(S_{\text{pose}}\).</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="sec" id="rigis" style="--c:var(--rigis)">
+  <div class="wrap">
+    <div class="sec-head"><span class="secno">§3.4.2</span><h2>RIGIS: <u style="text-decoration-color:var(--rigis)">R</u>obotic <u style="text-decoration-color:var(--rigis)">I</u>nter-view <u style="text-decoration-color:var(--rigis)">G</u>eometry &amp; <u style="text-decoration-color:var(--rigis)">I</u>ntrinsic-Extrinsic <u style="text-decoration-color:var(--rigis)">S</u>tability</h2></div>
+    <div class="indent">
+      <p class="lede">Cameras bolted to a rig see one scene and do not move. RIGIS lifts every view into 3-D with VGGT-Ω, reprojects it into the other cameras, and checks two things: whether the views agree on color and depth where they overlap, and whether the estimated cameras stay where they started.</p>
+    </div>
+    <div class="lab rlab" id="rigisLab">
+      <div class="lab-top">
+        <span class="ttl">RIGIS, step by step, on real rollouts</span>
+        <div class="picker" data-f="picker" role="group" aria-label="Choose a rollout"></div>
+      </div>
+      <p class="take" data-f="take" aria-live="polite"></p>
+      <div class="steps" role="tablist" aria-label="RIGIS stages" data-f="steps"></div>
+      <div class="vbox rv"><video muted playsinline loop preload="auto" data-f="video"></video><canvas class="ov" data-f="ov"></canvas><span class="vtag l">view 1</span><span class="vtag r">view 2</span></div>
+      <div class="transport">
+        <button type="button" data-f="play" aria-label="Pause"><svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" width="3" height="9"/><rect x="7" y="1.5" width="3" height="9"/></svg></button>
+        <span class="mono num" data-f="fr">τ = 0</span>
+        <input type="range" min="0" max="1000" value="0" step="1" data-f="scrub" aria-label="Time in the clip">
+        <span data-f="meta" class="mono"></span>
+      </div>
+      <div class="rmid">
+        <div class="explain"><h4 data-f="h"></h4><p data-f="p"></p><div class="eq" data-f="eq"></div><div class="chips" data-f="chips"></div></div>
+        <div class="skel"><canvas data-f="cloud" aria-label="VGGT point cloud of both views and the two estimated cameras; drag to rotate"></canvas><span class="tag" data-f="cloudtag">VGGT-Ω point cloud · drag to rotate</span><div class="keys" data-f="keys" role="group" aria-label="Keyframe"></div></div>
+        <div class="plot"><div class="ph"><span data-f="plotT"></span><span data-f="plotR"></span></div><svg data-f="plot" role="img" aria-label="Per-timestep measurement"></svg></div>
+      </div>
+      <div class="verdicts" data-f="verdicts">
+        <div class="verdict" data-v="human"><div class="who">Human raters</div><div class="what"></div><div class="why">Two annotators, adjudicated</div></div>
+        <div class="verdict" data-v="vlm"><div class="who">Gemma 4 31B + CoT · 3 runs</div><div class="what"></div><div class="why"></div></div>
+        <div class="verdict" data-v="rigis"><div class="who">RIGIS</div><div class="what"></div><div class="why"></div></div>
+      </div>
+    </div>
+    <p class="cap indent">Clips come from the 300-video multi-view human study. Depth, cameras and residuals are VGGT-Ω outputs from a rerun of the metric on the same frames (2 timesteps per second); the rerun reproduces the stored scores to within 0.002. On these five clips S<sub>geo</sub> stays between 0.879 and 0.886; what separates them is pose stability, with S<sub>pose</sub> running from 0.61 on 00096 to 0.95 on 00278. Points are a 1,700-point sample per view at three keyframes. The RIGIS band is the clip's tertile among the 100 rated clips of its morphology; the paper itself reports rank correlation, not cuts. Gemma 4 31B with chain-of-thought is the best VLM judge on this task (Table D5).</p>
+
+    <details class="sandbox indent">
+      <summary>Play with the formulas</summary>
+    <div class="rigis-lab">
+      <div class="rigis-stage"><canvas id="rigisCanvas" aria-label="Two cameras observing one scene; reprojection residuals and camera drift"></canvas><span class="tag">Two-camera rig · reprojection and drift</span></div>
+      <div class="rigis-panel">
+        <h4>Try a rollout</h4>
+        <div class="presets seg" id="rigisPresets" role="group" aria-label="Preset"></div>
+        <h4>Geometric consistency, per view</h4>
+        <div class="slider"><label for="rX">RGB error \(\Delta_X\)</label><input id="rX" type="range" min="0" max="0.4" step="0.005"><output for="rX"></output></div>
+        <div class="slider"><label for="rD">Depth error \(\Delta_D/\tilde d\)</label><input id="rD" type="range" min="0" max="0.6" step="0.005"><output for="rD"></output></div>
+        <h4>Camera drift over the rollout</h4>
+        <div class="slider"><label for="rR">\(\sigma_R\) (deg)</label><input id="rR" type="range" min="0" max="10" step="0.1"><output for="rR"></output></div>
+        <div class="slider"><label for="rT">\(\sigma_t\)</label><input id="rT" type="range" min="0" max="1" step="0.01"><output for="rT"></output></div>
+        <div class="slider"><label for="rK">\(\sigma_K\)</label><input id="rK" type="range" min="0" max="1" step="0.01"><output for="rK"></output></div>
+        <div class="scorebar" id="rigisBars"></div>
+        <p class="cap" id="rigisEq">\(s_X = 1-\Delta_X,\; s_D = 1-(\Delta_D/\tilde d)^2,\; S_{\text{geo}} = \prod_v \tfrac12(s_X+s_D)\)<br>\(S_{\text{ext}} = \tfrac12(e^{-\sigma_R/5}+e^{-\sigma_t}),\; S_{\text{int}} = e^{-\sigma_K},\; S = \tfrac12(S_{\text{geo}}+S_{\text{pose}})\)</p>
+      </div>
+    </div>
+    <p class="cap">The widget evaluates the RIGIS formulas of Appendix B.2 for a two-view rig with both views set to the same errors. The scene is a schematic; the presets are illustrative inputs, not measured rollouts.</p>
+    </details>
+  </div>
+</section>
+
+<section class="sec" id="results" style="--c:var(--audit)">
+  <div class="wrap">
+    <div class="sec-head"><span class="secno">§4.2</span><h2>Closer to human judgment than VLM judges</h2></div>
+    <div class="indent">
+      <p class="lede">Humans rated 291 single-view videos for embodied physics and 300 multi-view videos for consistency on a three-point scale, with two annotators and expert adjudication. Four frontier VLMs judged the same videos, zero-shot and with chain-of-thought, three runs each.</p>
+      <div class="kpi-row">
+        <div class="card kpi k"><b class="num">73.5%</b><span>KIVA overlap with human labels, pooled over all segments, against 58.4% for the best VLM</span></div>
+        <div class="card kpi k"><b class="num">0.289&nbsp;s</b><span>KIVA per video second; VLM judges take 0.75–17.4&nbsp;s</span></div>
+        <div class="card kpi r"><b class="num">0.749</b><span>RIGIS Spearman ρ with humans, against 0.326 for the best VLM</span></div>
+        <div class="card kpi r"><b class="num">87.4%</b><span>RIGIS pairwise rank accuracy, against 42.0% for the best VLM</span></div>
+      </div>
+
+      <div class="rq">
+        <div class="q">RQ1 · Human alignment</div>
+        <h3>Do KIVA and RIGIS agree with people more often than VLM judges do?</h3>
+        <div class="card chartcard">
+          <div class="controls">
+            <div><label class="l">Task</label><div class="seg" id="alTask" role="group" aria-label="Task"></div></div>
+            <div><label class="l">Measure</label><div class="seg" id="alMetric" role="group" aria-label="Measure"></div></div>
+            <div><label class="l">Morphology</label><div class="seg" id="alMorph" role="group" aria-label="Morphology"></div></div>
+          </div>
+          <svg id="alChart" role="img" aria-label="Agreement with human labels, ours vs VLM judges"></svg>
+          <div class="fam"><span><i style="background:var(--vlm)"></i>VLM, zero-shot</span><span><i style="background:var(--vlm-cot)"></i>VLM + chain-of-thought</span><span><i style="background:var(--kiva)"></i>KIVA (ours)</span><span><i style="background:var(--rigis)"></i>RIGIS (ours)</span></div>
+        </div>
+        <p class="cap">Tables D4 and D5. KIVA overlap uses cuts calibrated on nine videos per morphology, averaged over 1,000 draws; Spearman ρ does not depend on the cuts.</p>
+      </div>
+
+      <div class="rq">
+        <div class="q">RQ1 · Every multi-view rating</div>
+        <h3>300 rated clips, sorted by RIGIS and by a VLM judge</h3>
+        <div class="card chartcard">
+          <div class="controls">
+            <div><label class="l">Order clips by</label><div class="seg" id="swMode" role="group" aria-label="Scorer"></div></div>
+          </div>
+          <svg id="swarm" role="img" aria-label="Each dot is one multi-view clip, placed by the chosen scorer and colored by the human label"></svg>
+          <div class="fam"><span><i style="background:var(--bad)"></i>Humans: bad</span><span><i style="background:var(--med)"></i>medium</span><span><i style="background:var(--good)"></i>good</span><span><i class="ring"></i>clip in the RIGIS lab</span></div>
+        </div>
+        <p class="cap">One dot per clip, one lane per morphology. RIGIS places a clip by its score, scaled per lane; a VLM places it by the mean of its three runs on the 1 to 3 scale. Ticks mark the median of each human label. VLM scores come from the per-clip rating logs behind Table D5.</p>
+      </div>
+
+      <div class="rq">
+        <div class="q">RQ2 · Stability and cost</div>
+        <h3>VLM verdicts drift between runs and slow down with chain-of-thought</h3>
+        <div class="card chartcard"><svg id="latChart" role="img" aria-label="Latency per video second and run-to-run agreement"></svg></div>
+        <p class="cap">Table D3. Agreement is the share of videos a judge scores identically across its runs; latency is seconds per second of video. The metrics are deterministic, so they have no run-to-run spread.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="models" style="--c:var(--navy)">
+  <div class="wrap">
+    <div class="sec-head"><span class="secno">§4.3</span><h2>Dense world models, and drift over long horizons</h2></div>
+    <div class="indent">
+      <div class="rq" style="margin-top:0">
+        <div class="q">RQ4 · Morphologies and horizons</div>
+        <h3>Ctrl-World leads every multi-view track; DreamDojo leads single-view</h3>
+        <p class="a">Ctrl-World processes views with explicit spatio-temporal attention, while DreamGen sees a 2 × 2 tiled frame through plain self-attention, and RIGIS picks up the difference on every multi-view comparison. KIVA degrades most in the two deepest configurations, single-arm DreamGen and DreamDojo.</p>
+        <div class="controls" style="margin-top:1rem"><div class="seg" id="t2Seg" role="group" aria-label="Track"></div></div>
+        <div class="tbl-wrap"><table class="t" id="tab2"></table></div>
+        <p class="cap">Table 2. Medians under Markovian (Mkv) and non-Markovian (Non-Mkv) dynamics; bold marks the better model per morphology, as in the paper. FVD uses a shared per-camera reference for multi-view rows and per-configuration references for single-view rows, so single-view FVD is not comparable across models.</p>
+      </div>
+      <div class="rq">
+        <h3>Within a clip, severity grows with rollout depth</h3>
+        <p class="a">In 130 of 193 multi-chunk clips the segment severity rises with the chunk index (mean ρ = +0.20, sign test p &lt; 10<sup>−3</sup>), consistent with error accumulating over the rollout.</p>
+        <div class="card chartcard"><svg id="depthChart" role="img" aria-label="KIVA versus rollout depth"></svg></div>
+        <p class="cap">Table C4. Median rollout depth per clip against KIVA violation rate, Markovian vs. non-Markovian.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="acceleration" style="--c:var(--accel)">
+  <div class="wrap">
+    <div class="sec-head"><span class="secno">§4.4</span><h2>How much speed does physics survive?</h2></div>
+    <div class="indent">
+      <p class="lede">Caching gives the most reliable acceleration: 1.7× mean speed-up for a RIGIS change of −0.004, and it wins all 12 configurations. WorldCache reaches the benchmark-best 2.3×. Token pruning loses the most quality (13.4% NR loss) for only 1.2×.</p>
+      <div class="card chartcard">
+        <div class="controls">
+          <div><label class="l">Morphology</label><div class="seg" id="acMorph" role="group" aria-label="Morphology"></div></div>
+          <div><label class="l">Track</label><div class="seg" id="acTrack" role="group" aria-label="Track"></div></div>
+        </div>
+        <div class="accel-grid">
+          <svg id="acScatter" role="img" aria-label="Speed-up versus physics metric per acceleration method"></svg>
+          <div id="acSide"></div>
+        </div>
+        <div class="fam"><span><i style="background:var(--ink)"></i>Dense</span><span><i style="background:var(--accel)"></i>Caching</span><span><i style="background:var(--data)"></i>Sparse attention</span><span><i style="background:var(--audit)"></i>Token pruning</span><span>● / ◆ world model</span></div>
+      </div>
+      <p class="cap" id="acCap">Figures 5, C2 and C3. Speed-up is dense time over accelerated time per segment. Each point is one method on one world model. Thin dashed lines mark each world model's dense score, so points above a line kept quality and points below lost it; the long-dashed line with a label is real video, where the paper reports it.</p>
+
+      <figure style="margin-top:2rem">
+        <div class="figimg" data-zoom><img src="assets/fig/fig6.png" alt="Figure 6: alignment ladders, optimal vs over-accelerated rollouts, and degradation by depth" loading="lazy"></div>
+        <figcaption class="cap"><b>Figure 6.</b> (a) KIVA and RIGIS rank hallucinated samples where humans do. (b) RoboWorM finds the speed-up that keeps quality (2.1×, KIVA 0, RIGIS 0.84) and flags the over-accelerated one (2.9×, KIVA 16.7, RIGIS 0.74). (c) KIVA against video chunk number.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="limits" style="--c:var(--ink-2)">
+  <div class="wrap">
+    <div class="sec-head"><span class="secno">§5</span><h2>Limitations</h2></div>
+    <div class="indent lim">
+      <div class="card"><b>No contact physics</b>KIVA and RIGIS do not verify contact-level validity; that would need a full physics simulator.</div>
+      <div class="card"><b>Rigid bodies only</b>They cover rigid-body motion and miss deformable materials and force-driven dynamics.</div>
+      <div class="card"><b>Output-level audit</b>The acceleration audit measures degradation in the output, not which internal layers lose physical fidelity.</div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="bibtex" style="--c:var(--ink)">
+  <div class="wrap">
+    <div class="sec-head"><span class="secno">Cite</span><h2>BibTeX</h2></div>
+    <div class="indent">
+<pre class="bib" id="bib"><button class="btn copy" type="button" id="copyBib">Copy</button>@inproceedings{roboworm2027,
+  title     = {RoboWorM: Evaluating Movement Realism, Consistency and
+               Acceleration Affects in Embodied Video World Models},
+  author    = {Anonymous},
+  booktitle = {Submitted to the International Conference on Learning Representations (ICLR)},
+  year      = {2027},
+  note      = {Under double-blind review}
+}</pre>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer><div class="wrap">Code, evaluation scripts and the benchmark will be released on acceptance. Page layout and figures follow the paper.</div></footer>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script src="js/data.js"></script>
+<script src="js/common.js"></script>
+<script src="js/kiva.js"></script>
+<script src="js/rigis.js"></script>
+<script src="js/rigislab.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/teaser.js"></script>
+</body>
+</html>
