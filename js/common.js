@@ -39,7 +39,7 @@
   U.tipHide = () => { tip().style.opacity = 0; };
 
   document.addEventListener("DOMContentLoaded", () => {
-    // ICLR review line numbers in the hero margin
+    // line numbers in the hero margin
     const g = document.getElementById("gutter");
     if (g) g.innerHTML = Array.from({ length: 24 }, (_, i) => `<span>${String(i).padStart(3, "0")}</span>`).join("");
 

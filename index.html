@@ -24,7 +24,7 @@
 
 <div id="progress" aria-hidden="true"></div>
 <aside class="side" aria-label="Contents">
-  <a class="side-mark" href="#top"><span class="mark">RoboWorM</span><small>ICLR 2027 submission · under double-blind review</small></a>
+  <a class="side-mark" href="#top"><span class="mark">RoboWorM</span></a>
   <div class="side-cap">Contents</div>
   <ol>
     <li><a href="#abstract" style="--c:var(--ink)"><span>01</span>Abstract</a></li>
@@ -56,6 +56,7 @@
       <li><a class="l" href="#kiva">KIVA</a></li>
       <li><a class="l" href="#rigis">RIGIS</a></li>
       <li><a class="l" href="#results">Human alignment</a></li>
+      <li><a class="l" href="#models">World models</a></li>
       <li><a class="l" href="#acceleration">Acceleration</a></li>
       <li><a class="l" href="#bibtex">BibTeX</a></li>
     </ul>
@@ -67,10 +68,10 @@
   <div class="wrap">
     <div class="hero-grid">
       <div>
-        <div class="chips-top"><span class="hot">ICLR 2027 · under review</span><span>Video world models</span><span>Physics audit</span><span>Inference acceleration</span></div>
+        <div class="chips-top"><span>Video world models</span><span>Physics audit</span><span>Inference acceleration</span></div>
         <h1><span class="mark">RoboWorM</span>: Evaluating Movement Realism, Consistency and Acceleration Affects in Embodied Video <u>Wor</u>ld <u>M</u>odels</h1>
-        <p class="authors"><b>Anonymous authors</b> · Paper under double-blind review</p>
-        <p class="thesis">A generated robot video can look fine to a VLM judge and still show a 200&nbsp;mm forearm that stretched by 176&nbsp;mm, or a fixed camera that swings by 166°. RoboWorM checks rollouts against what a deployment already knows: <em>the robot's kinematic tree</em> and <em>the fixed camera rig</em>.</p>
+        <p class="authors"><b>Anonymous authors</b></p>
+        <p class="thesis">Video world models are becoming simulators for robot manipulation, yet most benchmarks still score them with VLM judges that reason poorly about 3-D structure and kinematics. RoboWorM checks rollouts against what a robot deployment already knows, <em>its kinematic tree</em> and <em>its fixed cameras</em>, with two VLM-free metrics: KIVA for kinematics within one view and RIGIS for geometry across views. It then uses them to measure what 9 acceleration methods cost in physical fidelity.</p>
         <div class="btns">
           <a class="btn primary" href="#benchmark"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2.5v11M3.5 9 8 13.5 12.5 9" stroke-linecap="round" stroke-linejoin="round"/></svg>Explore the benchmark</a>
           <span class="btn" aria-disabled="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 1.5h5.5L12.5 4.5v10h-8.5z M9.5 1.5v3h3"/></svg>Paper <small>on acceptance</small></span>
@@ -106,7 +107,7 @@
           <div class="audit-head"><span class="live" aria-hidden="true"></span><span class="grow">Bimanual · clip 00096 · two fixed cameras</span><span data-g="t" class="mono num"></span></div>
           <div class="vbox rv"><video muted playsinline loop preload="auto" data-g="video" data-src="assets/rigis/00096.mp4"></video><span class="vtag l">view 1</span><span class="vtag r">view 2</span></div>
           <div class="tease-plot"><div class="ph"><span>Where VGGT-Ω puts camera 2, as rotation from its first pose</span><span class="mono">degrees</span></div><svg data-g="rot" role="img" aria-label="View 2 rotation over time for this clip and a clean clip"></svg></div>
-          <p class="take"><span class="lbl">This clip</span><span class="txt">The cameras are fixed, yet VGGT-Ω can only explain the generated views by swinging camera 2 up to <b>166°</b>. A clean clip stays within 4°. <span class="ok">RIGIS ranks it 3rd percentile, like the human raters.</span> <span class="no">Gemma 4 rated it good in all 3 runs.</span></span></p>
+          <p class="take"><span class="lbl">This clip</span><span class="txt">The cameras are fixed, yet VGGT-Ω can only explain the generated views by swinging camera 2 up to <b>166°</b>. A clean clip stays within 4°.</span></p>
           <div class="verdicts">
             <div class="verdict"><div class="who">Human raters</div><div class="what"><span class="pill bad">Bad</span></div><div class="why">Two annotators, adjudicated</div></div>
             <div class="verdict wrong"><div class="who">Gemma 4 31B + CoT · 3 runs</div><div class="what"><span class="pill good">Good</span><span class="pill good">Good</span><span class="pill good">Good</span></div><div class="why">All three runs call the clip good</div></div>
@@ -198,7 +199,7 @@
 
       <h3 class="sub"><span class="k">Tab. 1</span>Where RoboWorM sits among video world model benchmarks</h3>
       <div class="tbl-wrap"><table class="t" id="tab1"></table></div>
-      <p class="cap">Coverage counts the four capability columns (multi-view, long-horizon, cross-view geometry, speed-up audit). Hybrid combines off-the-shelf algorithms and a VLM; IK / Sim is inverse kinematics plus simulation; Prior Alg. is a deterministic algorithm driven by dataset priors (camera calibration, robot proprioception, actions).</p>
+      <p class="cap">Coverage counts four columns: multi-view, long-horizon, cross-view geometry and speed-up audit. Hybrid is off-the-shelf algorithms plus a VLM; IK / Sim is inverse kinematics plus simulation; Prior Alg. is a deterministic algorithm driven by dataset priors (camera calibration, robot proprioception, actions).</p>
     </div>
   </div>
 </section>
@@ -260,7 +261,7 @@
         <span class="t" data-f="t"></span>
       </div>
     </div>
-    <p class="cap indent">Real rollouts from the 300-video human study. Curves come from a re-read of the published checkpoints; the verdict uses the stored score, which falls in the same band.</p>
+    <p class="cap indent">Real rollouts from the 300-video human study. The curves are recomputed for this page; the verdict uses the paper's score, which falls in the same band.</p>
 
   </div>
 </section>
@@ -310,7 +311,7 @@
         <div class="verdict" data-v="rigis"><div class="who">RIGIS</div><div class="what"></div><div class="why"></div></div>
       </div>
     </div>
-    <p class="cap indent">On these five clips S<sub>geo</sub> stays between 0.879 and 0.886; S<sub>pose</sub>, from 0.61 on 00096 to 0.95 on 00278, is what separates them. Bands are tertiles among the 100 rated clips of each morphology; the paper reports rank correlation, not cuts.</p>
+    <p class="cap indent">On these five clips S<sub>geo</sub> barely moves (0.879 to 0.886). S<sub>pose</sub> separates them, from 0.61 on 00096 to 0.95 on 00278. The bad / medium / good bands are tertiles of the 100 rated clips per morphology, drawn for this page; the paper reports only rank correlation.</p>
 
     <details class="sandbox indent">
       <summary>Play with the formulas</summary>
@@ -389,7 +390,7 @@
       <div class="rq" style="margin-top:0">
         <div class="q">RQ4 · Morphologies and horizons</div>
         <h3>Ctrl-World leads every multi-view track; DreamDojo leads single-view</h3>
-        <p class="a">Ctrl-World processes views with explicit spatio-temporal attention, while DreamGen sees a 2 × 2 tiled frame through plain self-attention, and RIGIS picks up the difference on every multi-view comparison. KIVA degrades most in the two deepest configurations, single-arm DreamGen and DreamDojo.</p>
+        <p class="a">Ctrl-World attends across views and time explicitly; DreamGen sees a 2 × 2 tiled frame through plain self-attention. RIGIS picks up the difference on every multi-view comparison. KIVA degrades most in the two deepest configurations, single-arm DreamGen and DreamDojo.</p>
         <div class="controls" style="margin-top:1rem"><div class="seg" id="t2Seg" role="group" aria-label="Track"></div></div>
         <div class="tbl-wrap"><table class="t" id="tab2"></table></div>
         <p class="cap">Table 2. Medians under Markovian (Mkv) and non-Markovian (Non-Mkv) dynamics; bold is the better model per morphology. Single-view FVD is not comparable across models.</p>
@@ -445,13 +446,11 @@
   <div class="wrap">
     <div class="sec-head"><span class="secno">Cite</span><h2>BibTeX</h2></div>
     <div class="indent">
-<pre class="bib" id="bib"><button class="btn copy" type="button" id="copyBib">Copy</button>@inproceedings{roboworm2027,
+<pre class="bib" id="bib"><button class="btn copy" type="button" id="copyBib">Copy</button>@misc{roboworm2027,
   title     = {RoboWorM: Evaluating Movement Realism, Consistency and
                Acceleration Affects in Embodied Video World Models},
   author    = {Anonymous},
-  booktitle = {Submitted to the International Conference on Learning Representations (ICLR)},
-  year      = {2027},
-  note      = {Under double-blind review}
+  year      = {2027}
 }</pre>
     </div>
   </div>
