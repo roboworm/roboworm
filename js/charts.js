@@ -27,10 +27,34 @@
         <text x="62" y="78" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--ink-3)">${g.sub}</text></svg>
         <ul class="legend">${g.parts.map(([n, v, c]) => `<li><i style="background:${c}"></i><span>${n}</span><b>${v}%</b></li>`).join("")}</ul></div>`;
     }).join("");
-    document.getElementById("robots").innerHTML = D.robots.map(r =>
-      `<div class="card robot"><div class="m" style="color:${C(r.c)}">${r.morph}</div><div class="n">${r.name}</div><div class="d">${r.src}<br>${r.views}</div></div>`).join("");
+    comp(); prims();
     document.getElementById("families").innerHTML = D.families.map(f =>
       `<div class="card"><b style="color:${C(f.c)}">${f.name} <span class="mono" style="font-size:.8rem;color:var(--ink-3)">${f.share}% of rollouts</span></b>${f.how}<div style="margin-top:.5rem;color:var(--ink)">${f.members.join(" · ")}</div></div>`).join("");
+  }
+
+  /* ---------- Tab. A1 composition, Fig. A1 primitives ---------- */
+  function comp() {
+    const el = document.getElementById("comp"); if (!el) return;
+    const max = 300, cams = n => `<span class="cams" title="${n} synchronized camera${n > 1 ? "s" : ""}">${"<i></i>".repeat(n)}</span>`;
+    let last = "";
+    const rows = D.comp.map(r => {
+      const g = r.emb !== last ? `<div class="emb">${r.emb}</div>` : `<div class="emb"></div>`; last = r.emb;
+      return `<div class="row${r.shared ? " shared" : ""}">${g}
+        <div class="who"><b>${r.name}</b><span>${r.robot}</span></div>
+        <div>${cams(r.views)}</div>
+        <div class="bar" title="Markovian ${r.mk} · non-Markovian ${r.nm}"><i class="mk" style="width:${r.mk / max * 100}%">${r.mk}</i><i class="nm" style="width:${r.nm / max * 100}%">${r.nm}</i></div>
+        <div class="n">${r.fps}</div><div class="n">${r.res}</div><div class="n">${r.ins[0]} + ${r.ins[1]}</div><div class="n">${r.pool}</div></div>`;
+    }).join("");
+    el.innerHTML = `<div class="row hd"><div>Embodiment</div><div>Corpus · robot</div><div>Views</div>
+      <div class="lg"><span><i class="mk"></i>Markovian</span><span><i class="nm"></i>non-Markovian episodes</span></div>
+      <div class="n">FPS</div><div class="n">Resolution</div><div class="n">Instructions</div><div class="n" title="Episodes available upstream">Pool</div></div>${rows}
+      <div class="row ft"><div></div><div class="who"><b>12 settings</b></div><div></div>
+      <div class="tot"><b>1,605</b> conditions · <b>1,305</b> distinct trajectories</div><div></div><div></div><div class="n"><b>509</b> distinct</div><div></div></div>`;
+  }
+  function prims() {
+    const el = document.getElementById("prims"); if (!el) return;
+    const L = v => Math.log10(v) / Math.log10(400) * 100;
+    el.innerHTML = D.prims.map(([n, v]) => `<li><span>${n}</span><i style="width:${Math.max(1.5, L(v))}%"></i><b>${v}</b></li>`).join("");
   }
 
   /* ---------- §3.2 world-model pipelines (after Fig. 2) ---------- */

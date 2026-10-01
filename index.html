@@ -11,7 +11,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f3a5f'/%3E%3Cpath d='M8 24 13 12 21 15 25 8' stroke='%23fff' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='13' cy='12' r='2.6' fill='%23fff'/%3E%3Ccircle cx='21' cy='15' r='2.6' fill='%23f0935a'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=STIX+Two+Text:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/kivalab.css">
 <script>
@@ -189,7 +189,21 @@
     <div class="indent">
       <p class="lede">Five public corpora (DROID, RoboChallenge, the AIST bimanual corpus, RoboCOIN and NVIDIA GR00T Teleop GR1) give six configurations over five robots and three morphologies, each with short Markovian and long non-Markovian tasks and up to four synchronized cameras.</p>
       <div class="donuts" id="donuts"></div>
-      <div class="robots" id="robots"></div>
+      <div class="card comp-card">
+        <div class="comp-scroll"><div class="comp" id="comp" aria-label="Composition of the twelve evaluation settings"></div></div>
+      </div>
+      <div class="ds-row">
+        <div class="card ds-prims"><h4>509 instructions, 14 manipulation primitives</h4><ul class="prims" id="prims"></ul><p class="ds-note">Instructions grouped by leading verb, log scale.</p></div>
+        <div class="card ds-facts"><h4>Horizon and footage</h4>
+          <dl>
+            <div><dt>9.7 h</dt><dd>of real video</dd></div>
+            <div><dt>0.2–142 s</dt><dd>per episode</dd></div>
+            <div><dt>4–3,000</dt><dd>frames per trajectory</dd></div>
+            <div><dt>15–30</dt><dd>source FPS</dd></div>
+          </dl>
+          <p class="ds-note">No success filter: failed demonstrations stay in, and every clip is generated to its own ground-truth length.</p>
+        </div>
+      </div>
 
       <h3 class="sub"><span class="k">§3.2</span>Three world models, three ways of rolling out</h3>
       <div class="card wm">
