@@ -71,7 +71,7 @@
         <div class="chips-top"><span>Video world models</span><span>Physics audit</span><span>Inference acceleration</span></div>
         <h1><span class="mark">RoboWorM</span>: Evaluating Movement Realism, Consistency and Acceleration Affects in Embodied Video <u>Wor</u>ld <u>M</u>odels</h1>
         <p class="authors"><b>Anonymous authors</b></p>
-        <p class="thesis">Video world models are becoming simulators for robot manipulation, yet most benchmarks still score them with VLM judges that reason poorly about 3-D structure and kinematics. RoboWorM checks rollouts against what a robot deployment already knows, <em>its kinematic tree</em> and <em>its fixed cameras</em>, with two VLM-free metrics: KIVA for kinematics within one view and RIGIS for geometry across views. It then uses them to measure what 9 acceleration methods cost in physical fidelity.</p>
+        <p class="thesis"><b>RoboWorM</b> is a deployment-aware benchmark for robot video world models. It scores rollouts with two VLM-free metrics built on what the robot already knows: <b class="hk">KIVA</b> for kinematics within one view and <b class="hr">RIGIS</b> for geometry across views. It then measures what <b class="ha">9 acceleration methods</b> cost in physical fidelity.</p>
         <div class="btns">
           <a class="btn primary" href="#benchmark"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2.5v11M3.5 9 8 13.5 12.5 9" stroke-linecap="round" stroke-linejoin="round"/></svg>Explore the benchmark</a>
           <span class="btn" aria-disabled="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 1.5h5.5L12.5 4.5v10h-8.5z M9.5 1.5v3h3"/></svg>Paper <small>on acceptance</small></span>
@@ -85,35 +85,22 @@
         <figcaption class="cap"><b>Teaser, 2 min, no sound.</b> The dataset first, then KIVA and RIGIS on generated rollouts, then what acceleration costs in physics.</figcaption>
       </figure>
 
-      <div class="stats" aria-label="RoboWorM at a glance (Fig. 1)">
-        <div class="stat-group data">
-          <h3>(a) Dataset collection</h3>
-          <div class="stat-row">
-            <div class="stat"><b data-count="1605">1,605</b><span>episodes</span></div>
-            <div class="stat"><b data-count="1200" data-suffix="+">1,200+</b><span>prompts</span></div>
-            <div class="stat"><b>5</b><span>embodiments</span></div>
-            <div class="stat"><b>5</b><span>source datasets</span></div>
-            <div class="stat"><b>1–4</b><span>views</span></div>
-          </div>
-        </div>
-        <div class="stat-group audit">
-          <h3>(b) Physics audit</h3>
-          <div class="stat-row">
-            <div class="stat"><b>2</b><span>new metrics</span></div>
-            <div class="stat"><b>4</b><span>adapted metrics</span></div>
-            <div class="stat"><b data-count="25.8" data-prefix="+" data-suffix="%" data-dec="1">+25.8%</b><span>hallucination detection vs. VLMs</span></div>
-            <div class="stat"><b data-count="130" data-prefix="+" data-suffix="%">+130%</b><span>multi-view Spearman vs. VLMs</span></div>
-          </div>
-        </div>
-        <div class="stat-group accel">
-          <h3>(c) Inference acceleration</h3>
-          <div class="stat-row">
-            <div class="stat"><b>3</b><span>world models</span></div>
-            <div class="stat"><b>9</b><span>acceleration methods</span></div>
-            <div class="stat"><b data-count="29" data-suffix="k">29k</b><span>generated rollouts</span></div>
-            <div class="stat"><b data-count="2.3" data-suffix="×" data-dec="1">2.3×</b><span>max. speed-up</span></div>
-          </div>
-        </div>
+      <div class="stats" aria-label="RoboWorM at a glance">
+        <div class="stat-group data"><h3>Dataset</h3><div class="stat-row">
+          <div class="stat"><b data-count="1605">1,605</b><span>real episodes</span></div>
+          <div class="stat"><b>5</b><span>robots, 3 body types</span></div>
+          <div class="stat"><b>1–4</b><span>synced cameras</span></div>
+        </div></div>
+        <div class="stat-group audit"><h3>Physics audit</h3><div class="stat-row">
+          <div class="stat"><b>2</b><span>VLM-free metrics</span></div>
+          <div class="stat"><b data-count="25.8" data-prefix="+" data-suffix="%" data-dec="1">+25.8%</b><span>hallucination detection vs. VLMs</span></div>
+          <div class="stat"><b data-count="130" data-prefix="+" data-suffix="%">+130%</b><span>multi-view Spearman vs. VLMs</span></div>
+        </div></div>
+        <div class="stat-group accel"><h3>Acceleration</h3><div class="stat-row">
+          <div class="stat"><b>9</b><span>methods, 3 world models</span></div>
+          <div class="stat"><b data-count="29" data-suffix="k">29k</b><span>generated rollouts</span></div>
+          <div class="stat"><b data-count="2.3" data-suffix="×" data-dec="1">2.3×</b><span>max. speed-up</span></div>
+        </div></div>
       </div>
 
       <div class="hero-try">

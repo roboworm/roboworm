@@ -628,3 +628,18 @@ section.sec.sub { border-top: 0; padding-top: clamp(1.5rem, 3.5vw, 2.8rem); }
 .try-p { margin: .35rem 0 0; font: 400 .95rem/1.5 var(--f-ui); color: var(--ink-2); }
 .hero-grid > .stats { margin-top: 0; }
 .hero-try { margin-top: 1.2rem; }
+
+/* thesis highlights in the metric colours */
+.thesis b { font-weight: 600; }
+.thesis .hk { color: var(--kiva); } .thesis .hr { color: var(--rigis); } .thesis .ha { color: var(--accel); }
+/* stats: one compact card, three columns */
+.hero-grid > .stats { display: grid; grid-template-columns: minmax(0, .92fr) minmax(0, 1.22fr) minmax(0, .92fr); gap: 0; margin-top: -.6rem;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.stats .stat-group { display: block; background: none; border: 0; border-radius: 0; padding: .8rem 1.1rem .9rem; box-shadow: inset 0 3px 0 var(--gc); }
+.stats .stat-group + .stat-group { border-left: 1px solid var(--line); }
+.stats .stat-group.data { --gc: var(--data); } .stats .stat-group.audit { --gc: var(--audit); } .stats .stat-group.accel { --gc: var(--accel); }
+.stats .stat-group h3 { margin: 0 0 .5rem; }
+.stats .stat-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .9rem; }
+.stats .audit .stat-row { grid-template-columns: minmax(0, .7fr) minmax(0, 1.15fr) minmax(0, 1.15fr); }
+.stats .stat b { font-size: 1.45rem; }
+.stats .stat span { font-size: .76rem; }
