@@ -237,7 +237,7 @@
         });
         y += blockGap;
       });
-      const phase = t < AT.cot ? "VLM, zero-shot" : t < AT.ours ? "VLM + chain-of-thought" : "KIVA and RIGIS";
+      const phase = t < AT.cot ? "VLM, zero-shot" : t < AT.ours ? "VLM + chain-of-thought" : "KIVA and RIGIS: the same score every run";
       svg.innerHTML = s;
       const st = svg.parentNode.querySelector(".lat-step"); if (st) st.textContent = phase;
     }

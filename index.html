@@ -6,7 +6,7 @@
 <title>RoboWorM</title>
 <meta name="description" content="RoboWorM: a deployment-aware benchmark that audits kinematic stability (KIVA), multi-view consistency (RIGIS) and inference acceleration in robotic video world models.">
 <meta property="og:title" content="RoboWorM: Evaluating Movement Realism, Consistency and Acceleration Affects in Embodied Video World Models">
-<meta property="og:description" content="1,605 episodes, 3 embodiments, 3 world models, 9 acceleration methods, 29k rollouts. Two VLM-free physics metrics: KIVA and RIGIS.">
+<meta property="og:description" content="1,605 episodes, 5 embodiments, 3 world models, 9 acceleration methods, 29k rollouts. Two VLM-free physics metrics: KIVA and RIGIS.">
 <meta property="og:image" content="assets/fig/fig1.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f3a5f'/%3E%3Cpath d='M8 24 13 12 21 15 25 8' stroke='%23fff' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='13' cy='12' r='2.6' fill='%23fff'/%3E%3Ccircle cx='21' cy='15' r='2.6' fill='%23f0935a'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -80,6 +80,47 @@
         </div>
       </div>
 
+      <figure class="teaser" id="teaser">
+        <div class="teaser-box"><video data-f="teaser" controls muted playsinline loop autoplay preload="metadata" poster="assets/teaser/poster.jpg" aria-label="RoboWorM teaser video, two minutes, no sound"><source src="assets/teaser/roboworm_teaser.mp4" type="video/mp4"></video></div>
+        <figcaption class="cap"><b>Teaser, 2 min, no sound.</b> The dataset first, then KIVA and RIGIS on generated rollouts, then what acceleration costs in physics.</figcaption>
+      </figure>
+
+      <div class="stats" aria-label="RoboWorM at a glance (Fig. 1)">
+        <div class="stat-group data">
+          <h3>(a) Dataset collection</h3>
+          <div class="stat-row">
+            <div class="stat"><b data-count="1605">1,605</b><span>episodes</span></div>
+            <div class="stat"><b data-count="1200" data-suffix="+">1,200+</b><span>prompts</span></div>
+            <div class="stat"><b>5</b><span>embodiments</span></div>
+            <div class="stat"><b>5</b><span>source datasets</span></div>
+            <div class="stat"><b>1–4</b><span>views</span></div>
+          </div>
+        </div>
+        <div class="stat-group audit">
+          <h3>(b) Physics audit</h3>
+          <div class="stat-row">
+            <div class="stat"><b>2</b><span>new metrics</span></div>
+            <div class="stat"><b>4</b><span>adapted metrics</span></div>
+            <div class="stat"><b data-count="25.8" data-prefix="+" data-suffix="%" data-dec="1">+25.8%</b><span>hallucination detection vs. VLMs</span></div>
+            <div class="stat"><b data-count="130" data-prefix="+" data-suffix="%">+130%</b><span>multi-view Spearman vs. VLMs</span></div>
+          </div>
+        </div>
+        <div class="stat-group accel">
+          <h3>(c) Inference acceleration</h3>
+          <div class="stat-row">
+            <div class="stat"><b>3</b><span>world models</span></div>
+            <div class="stat"><b>9</b><span>acceleration methods</span></div>
+            <div class="stat"><b data-count="29" data-suffix="k">29k</b><span>generated rollouts</span></div>
+            <div class="stat"><b data-count="2.3" data-suffix="×" data-dec="1">2.3×</b><span>max. speed-up</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-try">
+        <h2 class="try-h">Try it on real rollouts</h2>
+        <p class="try-p">Pick a rollout and compare what human raters, a VLM judge and our metrics say about it.</p>
+      </div>
+
       <div class="audit" id="heroAudit" aria-label="What RoboWorM measures, on real rollouts">
         <div class="tease-tabs" id="teaseTabs" role="tablist" aria-label="Teaser">
           <button type="button" role="tab" data-t="kiva" aria-selected="true" style="--c:var(--kiva)"><b>KIVA</b><span>kinematics in one view</span><i></i></button>
@@ -94,11 +135,13 @@
           <div class="skel"><canvas data-f="skel" aria-label="Predicted 3-D skeleton; drag to rotate"></canvas><span class="tag">Reader's 3-D skeleton · drag</span></div>
         </div>
         <div class="timeline"><svg data-f="tl" role="img" aria-label="KIVA score of every 16-frame segment"></svg></div>
+        <div class="tp-side">
         <p class="take" data-f="take" aria-live="polite"></p>
         <div class="verdicts">
           <div class="verdict" data-v="human"><div class="who">Human raters</div><div class="what"></div><div class="why">Two annotators, adjudicated</div></div>
           <div class="verdict" data-v="vlm"><div class="who">VLM judge · 3 runs</div><div class="what"></div><div class="why"></div></div>
           <div class="verdict" data-v="kiva"><div class="who">KIVA</div><div class="what"></div><div class="why"></div></div>
+        </div>
         </div>
         <div class="picker" data-f="picker" role="group" aria-label="Choose a rollout"></div>
         </div>
@@ -107,6 +150,7 @@
           <div class="audit-head"><span class="live" aria-hidden="true"></span><span class="grow">Bimanual · clip 00096 · two fixed cameras</span><span data-g="t" class="mono num"></span></div>
           <div class="vbox rv"><video muted playsinline loop preload="auto" data-g="video" data-src="assets/rigis/00096.mp4"></video><span class="vtag l">view 1</span><span class="vtag r">view 2</span></div>
           <div class="tease-plot"><div class="ph"><span>Where VGGT-Ω puts camera 2, as rotation from its first pose</span><span class="mono">degrees</span></div><svg data-g="rot" role="img" aria-label="View 2 rotation over time for this clip and a clean clip"></svg></div>
+          <div class="tp-side">
           <p class="take"><span class="lbl">This clip</span><span class="txt">The cameras are fixed, yet VGGT-Ω can only explain the generated views by swinging camera 2 up to <b>166°</b>. A clean clip stays within 4°.</span></p>
           <div class="verdicts">
             <div class="verdict"><div class="who">Human raters</div><div class="what"><span class="pill bad">Bad</span></div><div class="why">Two annotators, adjudicated</div></div>
@@ -114,48 +158,21 @@
             <div class="verdict"><div class="who">RIGIS</div><div class="what"><span class="pill bad">Bad</span></div><div class="why">S = 0.744, 3rd percentile of 100 bimanual clips</div></div>
           </div>
           <a class="tease-more" href="#rigis">Walk through RIGIS step by step →</a>
+          </div>
         </div>
 
         <div class="tease-pane" data-pane="accel" style="--acc:var(--accel)">
           <div class="audit-head"><span class="live" aria-hidden="true"></span><span class="grow" data-g="head">DreamGen · 9 accelerators against dense</span><span class="seg tease-seg" data-g="morph" role="group" aria-label="Robot"></span></div>
           <div class="tease-plot"><svg data-g="acc" role="img" aria-label="Per accelerator: speed-up, video quality kept, KIVA flags on single view and RIGIS on multi-view"></svg></div>
+          <div class="tp-side">
           <p class="take"><span class="lbl">Takeaway</span><span class="txt" data-g="take"></span></p>
           <a class="tease-more" href="#acceleration">All 12 configurations →</a>
+          </div>
         </div>
         </div>
       </div>
     </div>
 
-    <div class="stats" aria-label="RoboWorM at a glance (Fig. 1)">
-      <div class="stat-group data">
-        <h3>(a) Dataset collection</h3>
-        <div class="stat-row">
-          <div class="stat"><b data-count="1605">1,605</b><span>episodes</span></div>
-          <div class="stat"><b data-count="1200" data-suffix="+">1,200+</b><span>prompts</span></div>
-          <div class="stat"><b>5</b><span>embodiments</span></div>
-          <div class="stat"><b>5</b><span>source datasets</span></div>
-          <div class="stat"><b>1–4</b><span>views</span></div>
-        </div>
-      </div>
-      <div class="stat-group audit">
-        <h3>(b) Physics audit</h3>
-        <div class="stat-row">
-          <div class="stat"><b>2</b><span>new metrics</span></div>
-          <div class="stat"><b>4</b><span>adapted metrics</span></div>
-          <div class="stat"><b data-count="25.8" data-prefix="+" data-suffix="%" data-dec="1">+25.8%</b><span>hallucination detection vs. VLMs</span></div>
-          <div class="stat"><b data-count="130" data-prefix="+" data-suffix="%">+130%</b><span>multi-view Spearman vs. VLMs</span></div>
-        </div>
-      </div>
-      <div class="stat-group accel">
-        <h3>(c) Inference acceleration</h3>
-        <div class="stat-row">
-          <div class="stat"><b>3</b><span>world models</span></div>
-          <div class="stat"><b>9</b><span>acceleration methods</span></div>
-          <div class="stat"><b data-count="29" data-suffix="k">29k</b><span>generated rollouts</span></div>
-          <div class="stat"><b data-count="2.3" data-suffix="×" data-dec="1">2.3×</b><span>max. speed-up</span></div>
-        </div>
-      </div>
-    </div>
   </div>
 </header>
 
@@ -387,17 +404,17 @@
   <div class="wrap">
     <div class="sec-head"><span class="secno">§4.3</span><h2>Dense world models, and drift over long horizons</h2></div>
     <div class="indent">
-      <div class="rq" style="margin-top:0">
+      <div class="rq" style="margin-top:1.8rem">
         <div class="q">RQ4 · Morphologies and horizons</div>
         <h3>Ctrl-World leads every multi-view track; DreamDojo leads single-view</h3>
-        <p class="a">Ctrl-World attends across views and time explicitly; DreamGen sees a 2 × 2 tiled frame through plain self-attention. RIGIS picks up the difference on every multi-view comparison. KIVA degrades most in the two deepest configurations, single-arm DreamGen and DreamDojo.</p>
+        <p class="a">Ctrl-World attends across views and time explicitly; DreamGen sees a 2 × 2 tiled frame through plain self-attention. RIGIS picks up the difference on every multi-view comparison. KIVA degrades most in the two configurations with the deepest rollouts, single-arm DreamGen and DreamDojo.</p>
         <div class="controls" style="margin-top:1rem"><div class="seg" id="t2Seg" role="group" aria-label="Track"></div></div>
         <div class="tbl-wrap"><table class="t" id="tab2"></table></div>
         <p class="cap">Table 2. Medians under Markovian (Mkv) and non-Markovian (Non-Mkv) dynamics; bold is the better model per morphology. Single-view FVD is not comparable across models.</p>
       </div>
       <div class="rq">
         <h3>Within a clip, severity grows with rollout depth</h3>
-        <p class="a">In 130 of 193 multi-chunk clips the segment severity rises with the chunk index (mean ρ = +0.20, sign test p &lt; 10<sup>−3</sup>), consistent with error accumulating over the rollout.</p>
+        <p class="a">In 130 of 193 multi-chunk clips the segment severity rises with the chunk index (mean ρ&nbsp;=&nbsp;+0.20, sign test p&nbsp;&lt;&nbsp;10<sup>−3</sup>), consistent with error accumulating over the rollout.</p>
         <div class="card chartcard"><svg id="depthChart" role="img" aria-label="KIVA versus rollout depth"></svg></div>
         <p class="cap">Table C4. Median rollout depth per clip against KIVA violation rate, Markovian vs. non-Markovian.</p>
       </div>
@@ -409,7 +426,7 @@
   <div class="wrap">
     <div class="sec-head"><span class="secno">§4.4</span><h2>How much speed does physics survive?</h2></div>
     <div class="indent">
-      <p class="lede">Caching gives the most reliable acceleration: 1.7× mean speed-up for a RIGIS change of −0.004, and it wins all 12 configurations. WorldCache reaches the benchmark-best 2.3×. Token pruning loses the most quality (13.4% NR loss) for only 1.2×.</p>
+      <p class="lede">Caching is both the fastest and the gentlest family: 1.67× mean speed-up for a 7.5% median quality loss and a RIGIS change of −0.004, and a caching method is fastest on all 12 configurations. WorldCache reaches the benchmark-best 2.3×. Token pruning is worst on both axes, 1.18× for a 29.2% quality loss.</p>
       <div class="card chartcard">
         <div class="controls">
           <div><label class="l">Morphology</label><div class="seg" id="acMorph" role="group" aria-label="Morphology"></div></div>

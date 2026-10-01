@@ -214,3 +214,17 @@
     tabs();
   });
 })();
+
+/* Teaser video: plays only while on screen, so the demo below is not competing with it. */
+(function () {
+  const v = document.querySelector('video[data-f="teaser"]'); if (!v) return;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { v.removeAttribute("autoplay"); v.pause(); return; }
+  let user = false;
+  v.addEventListener("pause", () => { if (!v.dataset.auto) user = true; delete v.dataset.auto; });
+  v.addEventListener("play", () => { user = false; });
+  new IntersectionObserver(es => {
+    const on = es[0].isIntersecting;
+    if (on && !user) v.play().catch(() => {});
+    else if (!on && !v.paused) { v.dataset.auto = "1"; v.pause(); }
+  }, { threshold: 0.35 }).observe(v);
+})();

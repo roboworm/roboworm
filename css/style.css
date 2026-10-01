@@ -594,3 +594,37 @@ section.sec.sub { border-top: 0; padding-top: clamp(1.5rem, 3.5vw, 2.8rem); }
 #tab1.anim.go tbody tr:not(.grp), #tab1.anim.go .pips i.on, #tab1.anim.go tr.ours .y { opacity: 1; transform: none; }
 #tab1.anim.go tr.ours .pips { animation: covPop .6s ease calc(var(--d) + 1.1s) 1 both; }
 @keyframes covPop { 0%, 100% { transform: none; } 45% { transform: scale(1.25); } }
+
+/* ---------- hero, one column: intro on top, the demo card full width with visuals left and verdicts right ---------- */
+.hero-grid { grid-template-columns: minmax(0, 1fr); gap: clamp(1.8rem, 3.5vw, 2.6rem); }
+.hero h1 { max-width: 62rem; }
+.thesis { max-width: 48rem; }
+.tease-pane { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 22rem); grid-template-rows: auto auto auto 1fr; }
+.tease-pane > * { grid-column: 1; }
+.tease-pane > .audit-head { grid-column: 1 / -1; border-bottom: 1px solid var(--stage-line); }
+.tp-side { grid-column: 2; grid-row: 2 / 5; display: flex; flex-direction: column; border-left: 1px solid var(--stage-line); min-width: 0; }
+.tp-side .take { border-top: 0; padding: 1rem 1.1rem; font-size: .95rem; line-height: 1.45; }
+.tp-side .verdicts { grid-template-columns: minmax(0, 1fr); }
+.tp-side .verdict { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); column-gap: .8rem; align-items: baseline; padding: .7rem 1.1rem; }
+.tp-side .verdict .who { grid-row: 1 / 3; line-height: 1.35; }
+.tp-side .verdict .what { margin-top: 0; }
+.tp-side .verdict .why { grid-column: 2; }
+.tease-pane > .picker { grid-column: 1 / -1; }
+.tp-side .tease-more { margin-top: auto; }
+.tease-pane[data-pane="kiva"] .audit-body { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+.tease-pane[data-pane="kiva"] .skel { min-height: 260px; }
+@media (max-width: 900px) {
+  .tease-pane { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .tp-side { grid-column: 1; grid-row: auto; border-left: 0; }
+}
+
+/* ---------- teaser video, between the intro and the interactive demo ---------- */
+.teaser { margin: 0; }
+.teaser-box { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); background: var(--surface); aspect-ratio: 16 / 9; }
+.teaser-box video { display: block; width: 100%; height: 100%; object-fit: contain; background: var(--surface); }
+.teaser .cap { margin-top: .7rem; }
+.hero-try { margin-bottom: -1rem; }
+.try-h { font: 600 1.45rem/1.25 var(--f-display, inherit); color: var(--ink); margin: 0; }
+.try-p { margin: .35rem 0 0; font: 400 .95rem/1.5 var(--f-ui); color: var(--ink-2); }
+.hero-grid > .stats { margin-top: 0; }
+.hero-try { margin-top: 1.2rem; }
