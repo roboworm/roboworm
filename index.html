@@ -81,8 +81,7 @@
       </div>
 
       <figure class="teaser" id="teaser">
-        <div class="teaser-box"><video data-f="teaser" controls muted playsinline loop autoplay preload="metadata" poster="assets/teaser/poster.jpg" aria-label="RoboWorM teaser video, two minutes, no sound"><source src="assets/teaser/roboworm_teaser.mp4" type="video/mp4"></video></div>
-        <figcaption class="cap"><b>Teaser, 2 min, no sound.</b> The dataset first, then KIVA and RIGIS on generated rollouts, then what acceleration costs in physics.</figcaption>
+        <div class="teaser-box"><video data-f="teaser" controls muted playsinline loop autoplay preload="metadata" poster="assets/teaser/poster.jpg" aria-label="RoboWorM teaser video with music"><source src="assets/teaser/roboworm_teaser.mp4" type="video/mp4"></video></div>
       </figure>
 
       <div class="stats" aria-label="RoboWorM at a glance">
@@ -103,61 +102,6 @@
         </div></div>
       </div>
 
-      <div class="hero-try">
-        <h2 class="try-h">Try it on real rollouts</h2>
-        <p class="try-p">Pick a rollout and compare what human raters, a VLM judge and our metrics say about it.</p>
-      </div>
-
-      <div class="audit" id="heroAudit" aria-label="What RoboWorM measures, on real rollouts">
-        <div class="tease-tabs" id="teaseTabs" role="tablist" aria-label="Teaser">
-          <button type="button" role="tab" data-t="kiva" aria-selected="true" style="--c:var(--kiva)"><b>KIVA</b><span>kinematics in one view</span><i></i></button>
-          <button type="button" role="tab" data-t="rigis" aria-selected="false" style="--c:var(--rigis)"><b>RIGIS</b><span>geometry across views</span><i></i></button>
-          <button type="button" role="tab" data-t="accel" aria-selected="false" style="--c:var(--accel)"><b>Acceleration</b><span>speed against physics</span><i></i></button>
-        </div>
-        <div class="tease-body">
-        <div class="tease-pane on" data-pane="kiva" style="--acc:var(--kiva)">
-        <div class="audit-head"><span class="live" aria-hidden="true"></span><span class="grow" data-f="head">KIVA audit</span><span data-f="t" class="mono num"></span></div>
-        <div class="audit-body">
-          <div class="vbox"><video muted playsinline loop autoplay preload="auto" data-f="video"></video></div>
-          <div class="skel"><canvas data-f="skel" aria-label="Predicted 3-D skeleton; drag to rotate"></canvas><span class="tag">Reader's 3-D skeleton · drag</span></div>
-        </div>
-        <div class="timeline"><svg data-f="tl" role="img" aria-label="KIVA score of every 16-frame segment"></svg></div>
-        <div class="tp-side">
-        <p class="take" data-f="take" aria-live="polite"></p>
-        <div class="verdicts">
-          <div class="verdict" data-v="human"><div class="who">Human raters</div><div class="what"></div><div class="why">Two annotators, adjudicated</div></div>
-          <div class="verdict" data-v="vlm"><div class="who">VLM judge · 3 runs</div><div class="what"></div><div class="why"></div></div>
-          <div class="verdict" data-v="kiva"><div class="who">KIVA</div><div class="what"></div><div class="why"></div></div>
-        </div>
-        </div>
-        <div class="picker" data-f="picker" role="group" aria-label="Choose a rollout"></div>
-        </div>
-
-        <div class="tease-pane" data-pane="rigis" style="--acc:var(--rigis)">
-          <div class="audit-head"><span class="live" aria-hidden="true"></span><span class="grow">Bimanual · clip 00096 · two fixed cameras</span><span data-g="t" class="mono num"></span></div>
-          <div class="vbox rv"><video muted playsinline loop preload="auto" data-g="video" data-src="assets/rigis/00096.mp4"></video><span class="vtag l">view 1</span><span class="vtag r">view 2</span></div>
-          <div class="tease-plot"><div class="ph"><span>Where VGGT-Ω puts camera 2, as rotation from its first pose</span><span class="mono">degrees</span></div><svg data-g="rot" role="img" aria-label="View 2 rotation over time for this clip and a clean clip"></svg></div>
-          <div class="tp-side">
-          <p class="take"><span class="lbl">This clip</span><span class="txt">The cameras are fixed, yet VGGT-Ω can only explain the generated views by swinging camera 2 up to <b>166°</b>. A clean clip stays within 4°.</span></p>
-          <div class="verdicts">
-            <div class="verdict"><div class="who">Human raters</div><div class="what"><span class="pill bad">Bad</span></div><div class="why">Two annotators, adjudicated</div></div>
-            <div class="verdict wrong"><div class="who">Gemma 4 31B + CoT · 3 runs</div><div class="what"><span class="pill good">Good</span><span class="pill good">Good</span><span class="pill good">Good</span></div><div class="why">All three runs call the clip good</div></div>
-            <div class="verdict"><div class="who">RIGIS</div><div class="what"><span class="pill bad">Bad</span></div><div class="why">S = 0.744, 3rd percentile of 100 bimanual clips</div></div>
-          </div>
-          <a class="tease-more" href="#rigis">Walk through RIGIS step by step →</a>
-          </div>
-        </div>
-
-        <div class="tease-pane" data-pane="accel" style="--acc:var(--accel)">
-          <div class="audit-head"><span class="live" aria-hidden="true"></span><span class="grow" data-g="head">DreamGen · 9 accelerators against dense</span><span class="seg tease-seg" data-g="morph" role="group" aria-label="Robot"></span></div>
-          <div class="tease-plot"><svg data-g="acc" role="img" aria-label="Per accelerator: speed-up, video quality kept, KIVA flags on single view and RIGIS on multi-view"></svg></div>
-          <div class="tp-side">
-          <p class="take"><span class="lbl">Takeaway</span><span class="txt" data-g="take"></span></p>
-          <a class="tease-more" href="#acceleration">All 12 configurations →</a>
-          </div>
-        </div>
-        </div>
-      </div>
     </div>
 
   </div>
@@ -166,19 +110,12 @@
 <main>
 <section class="sec" id="abstract" style="--c:var(--ink)">
   <div class="wrap">
-    <div class="sec-head"><span class="secno">Abstract</span><h2>Physics you can check without asking a VLM</h2></div>
+    <div class="sec-head"><span class="secno">Abstract</span><h2>Kinematic and motion-grounded physics, checked without a VLM</h2></div>
     <div class="indent" style="margin-top:1.4rem">
-        <figure class="abs-fig">
-          <div class="figimg" data-zoom><img src="assets/fig/fig1.png" alt="Figure 1: overview of RoboWorM with dataset collection, physics audit and inference acceleration panels" loading="lazy"></div>
-          <figcaption class="cap"><b>Figure 1.</b> Overview of RoboWorM. Click to enlarge.</figcaption>
-        </figure>
-        <details class="abs-more">
-          <summary>Read the abstract</summary>
         <div class="prose abstract abs-cols">
           <p>Video world models (VWMs) are rapidly emerging as scalable neural simulators for robotic manipulation. However, most benchmarks only evaluate them as open-world video generators, using Vision-Language Models (VLMs) that lack strict 3D spatial and kinematic reasoning. To bridge this gap, we introduce <b>RoboWorM</b>, a comprehensive, <i>deployment-aware</i> benchmark that leverages known hardware priors such as robot kinematic trees and fixed camera configurations, to systematically examine structural and spatiotemporal fidelity. RoboWorM curates 1,605 real-world episodes across single-arm, bimanual, and humanoid morphologies, spanning both Markovian and long-horizon non-Markovian tasks under single- and multi-view setups.</p>
           <p>To explicitly measure physical consistency, we propose two deterministic, VLM-free metrics: <b>KIVA</b> for intra-view kinematic stability, and <b>RIGIS</b> for multi-view geometric consistency. By exploiting intrinsic robotic invariants, KIVA improves hallucination detection alignment with human annotations by 25.8% relative to the strongest frontier VLMs, while RIGIS achieves a 130% higher Spearman correlation with human preferences. Furthermore, since real-world deployment requires low inference latency, we utilize RoboWorM to conduct the first large-scale audit of the quality-efficiency trade-off. Evaluating 9 state-of-the-art acceleration techniques across 3 leading world models (over 29,000 generated rollouts), we demonstrate how these acceleration methods can retain superficial visual quality while silently compromising deployment-critical physical constraints. Using our metrics, we achieve 2.3× maximum inference speed-up with minimal quality loss.</p>
         </div>
-        </details>
     </div>
   </div>
 </section>
@@ -331,26 +268,6 @@
     </div>
     <p class="cap indent">On these five clips S<sub>geo</sub> barely moves (0.879 to 0.886). S<sub>pose</sub> separates them, from 0.61 on 00096 to 0.95 on 00278. The bad / medium / good bands are tertiles of the 100 rated clips per morphology, drawn for this page; the paper reports only rank correlation.</p>
 
-    <details class="sandbox indent">
-      <summary>Play with the formulas</summary>
-    <div class="rigis-lab">
-      <div class="rigis-stage"><canvas id="rigisCanvas" aria-label="Two cameras observing one scene; reprojection residuals and camera drift"></canvas><span class="tag">Two-camera rig · reprojection and drift</span></div>
-      <div class="rigis-panel">
-        <h4>Try a rollout</h4>
-        <div class="presets seg" id="rigisPresets" role="group" aria-label="Preset"></div>
-        <h4>Geometric consistency, per view</h4>
-        <div class="slider"><label for="rX">RGB error \(\Delta_X\)</label><input id="rX" type="range" min="0" max="0.4" step="0.005"><output for="rX"></output></div>
-        <div class="slider"><label for="rD">Depth error \(\Delta_D/\tilde d\)</label><input id="rD" type="range" min="0" max="0.6" step="0.005"><output for="rD"></output></div>
-        <h4>Camera drift over the rollout</h4>
-        <div class="slider"><label for="rR">\(\sigma_R\) (deg)</label><input id="rR" type="range" min="0" max="10" step="0.1"><output for="rR"></output></div>
-        <div class="slider"><label for="rT">\(\sigma_t\)</label><input id="rT" type="range" min="0" max="1" step="0.01"><output for="rT"></output></div>
-        <div class="slider"><label for="rK">\(\sigma_K\)</label><input id="rK" type="range" min="0" max="1" step="0.01"><output for="rK"></output></div>
-        <div class="scorebar" id="rigisBars"></div>
-        <p class="cap" id="rigisEq">\(s_X = 1-\Delta_X,\; s_D = 1-(\Delta_D/\tilde d)^2,\; S_{\text{geo}} = \prod_v \tfrac12(s_X+s_D)\)<br>\(S_{\text{ext}} = \tfrac12(e^{-\sigma_R/5}+e^{-\sigma_t}),\; S_{\text{int}} = e^{-\sigma_K},\; S = \tfrac12(S_{\text{geo}}+S_{\text{pose}})\)</p>
-      </div>
-    </div>
-    <p class="cap">RIGIS formulas of Appendix B.2 on a schematic two-view rig. Presets are illustrative, not measured.</p>
-    </details>
   </div>
 </section>
 
