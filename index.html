@@ -117,8 +117,8 @@
         <p>Robot video world models are usually scored as generic video generators, often by <mark class="m-x">VLM judges that cannot check 3-D geometry or kinematics</mark>. RoboWorM scores them with what a deployment already knows: the robot's <mark class="m-k">kinematic tree</mark> and its <mark class="m-r">fixed camera rig</mark>.</p>
         <ol class="abs3">
           <li class="d"><span class="k">a</span><p><mark class="m-d">1,605 real episodes</mark> on single-arm, bimanual and humanoid robots, with short and long-horizon tasks and one to four views.</p></li>
-          <li class="kr"><span class="k">b</span><p>Two VLM-free metrics: <b class="hk">KIVA</b> for kinematics within a view (<mark class="m-k">+25.8% hallucination detection</mark> over the best VLM) and <b class="hr">RIGIS</b> for geometry across views (<mark class="m-r">+130% Spearman correlation</mark> with humans).</p></li>
-          <li class="a"><span class="k">c</span><p>An audit of <mark class="m-a">9 acceleration methods</mark> on 3 world models, over 29,000 rollouts. Faster videos can look right and still break physics; KIVA and RIGIS find a <mark class="m-a">2.3× speed-up with minimal quality loss</mark>.</p></li>
+          <li class="kr"><span class="k">b</span><p>Two VLM-free metrics: <b class="hk">KIVA</b> for kinematics within a view (<mark class="m-k">+25.8% agreement with human hallucination labels</mark> over the best VLM) and <b class="hr">RIGIS</b> for geometry across views (<mark class="m-r">+130% Spearman correlation</mark> with humans).</p></li>
+          <li class="a"><span class="k">c</span><p>An audit of <mark class="m-a">9 acceleration methods</mark> on 3 world models, over 29,000 rollouts. Faster videos can look right and still break physics; KIVA and RIGIS find <mark class="m-a">up to 2.3× speed-up with minimal quality loss</mark>.</p></li>
         </ol>
       </div>
     </div>
