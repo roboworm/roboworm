@@ -43,13 +43,13 @@
         <div class="who"><b>${r.name}</b><span>${r.robot}</span></div>
         <div>${cams(r.views)}</div>
         <div class="bar" title="Markovian ${r.mk} · non-Markovian ${r.nm}"><i class="mk" style="width:${r.mk / max * 100}%">${r.mk}</i><i class="nm" style="width:${r.nm / max * 100}%">${r.nm}</i></div>
-        <div class="n">${r.fps}</div><div class="n">${r.res}</div><div class="n">${r.ins[0]} + ${r.ins[1]}</div><div class="n">${r.pool}</div></div>`;
+        <div class="n">${r.fps}</div><div class="n">${r.res}</div><div class="n ins"><span class="mk">${r.ins[0]}</span><span class="nm">${r.ins[1]}</span></div></div>`;
     }).join("");
     el.innerHTML = `<div class="row hd"><div>Embodiment</div><div>Corpus · robot</div><div>Views</div>
       <div class="lg"><span><i class="mk"></i>Markovian</span><span><i class="nm"></i>non-Markovian episodes</span></div>
-      <div class="n">FPS</div><div class="n">Resolution</div><div class="n">Instructions</div><div class="n" title="Episodes available upstream">Pool</div></div>${rows}
+      <div class="n">FPS</div><div class="n">Resolution</div><div class="n">Instructions<small>Mkv · non-Mkv</small></div></div>${rows}
       <div class="row ft"><div></div><div class="who"><b>12 settings</b></div><div></div>
-      <div class="tot"><b>1,605</b> conditions · <b>1,305</b> distinct trajectories</div><div></div><div></div><div class="n"><b>509</b> distinct</div><div></div></div>`;
+      <div class="tot"><b>1,605</b> conditions · <b>1,305</b> distinct trajectories</div><div></div><div></div><div class="n"><b>509</b> distinct</div></div>`;
   }
   function prims() {
     const el = document.getElementById("prims"); if (!el) return;
@@ -120,23 +120,18 @@
   /* ---------- Table 1 ---------- */
   function tab1() {
     const t = document.getElementById("tab1"); if (!t) return;
-    // coverage = how many of the four capability columns a benchmark has
-    const yn = (v, i) => v ? `<span class="y" style="--i:${i}" aria-label="yes">✓</span>` : '<span class="n" aria-label="no">✗</span>';
-    let h = `<thead><tr><th>Benchmark</th><th># Samples</th><th>Data sources</th><th>Morphologies</th><th>Multi-view</th><th>Long-horizon</th><th>Evaluator</th><th>Cross-view geometry</th><th>Speed-up audit</th><th>Coverage</th></tr></thead><tbody>`;
-    let n = 0;
+    // Table 1 as printed in the paper: two column groups, no derived columns
+    const yn = v => v ? '<span class="y" aria-label="yes">✓</span>' : '<span class="n" aria-label="no">✗</span>';
+    let h = `<thead><tr><th rowspan="2">Benchmark</th><th colspan="5" class="gl">Data diversity</th><th colspan="3" class="gl">Evaluation dimensions</th></tr>
+      <tr><th class="gl"># Samples</th><th>Data sources</th><th>Robot morphologies</th><th>Multi-view setup</th><th>Long-horizon tasks</th><th class="gl">Evaluator paradigm</th><th>Cross-view geometry</th><th>Speed-up audit</th></tr></thead><tbody>`;
     D.tab1.forEach(g => {
-      h += `<tr class="grp"><td colspan="10">${g.group}</td></tr>`;
+      h += `<tr class="grp"><td colspan="9">${g.group}</td></tr>`;
       g.rows.forEach(r => {
-        const ours = r[0] === "RoboWorM", has = [r[4], r[5], r[7], r[8]], k = has.filter(Boolean).length;
-        const d = ours ? 1.1 + 0.06 * n : 0.06 * n; n++;
-        const pips = [0, 1, 2, 3].map(i => `<i class="${i < k ? "on" : ""}" style="--i:${i}"></i>`).join("");
-        h += `<tr${ours ? ' class="ours"' : ""} style="--d:${d.toFixed(2)}s"><td>${ours ? '<span class="mark">RoboWorM</span>' : r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${yn(r[4], 0)}</td><td>${yn(r[5], 1)}</td><td>${r[6]}</td><td>${yn(r[7], 2)}</td><td>${yn(r[8], 3)}</td><td class="cov"><span class="pips">${pips}</span><b>${k}/4</b></td></tr>`;
+        const ours = r[0] === "RoboWorM";
+        h += `<tr${ours ? ' class="ours"' : ""}><td>${ours ? '<span class="mark">RoboWorM</span>' : r[0]}</td><td class="gl">${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${yn(r[4])}</td><td>${yn(r[5])}</td><td class="gl">${r[6]}</td><td>${yn(r[7])}</td><td>${yn(r[8])}</td></tr>`;
       });
     });
     t.innerHTML = h + "</tbody>";
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    t.classList.add("anim");
-    new IntersectionObserver((es, io) => es.forEach(e => { if (e.isIntersecting) { io.disconnect(); t.classList.add("go"); } }), { threshold: 0.3 }).observe(t);
   }
 
   /* ---------- RQ1 alignment bars ---------- */
@@ -287,8 +282,10 @@
 
   /* ---------- Table 2 ---------- */
   function tab2() {
-    const t = document.getElementById("tab2"); if (!t || !D.tab2) return;
+    if (!D.tab2) return;
+    // both panels of Table 2, stacked as in the paper
     const show = k => {
+      const t = document.getElementById(k === "mv" ? "tab2mv" : "tab2sv"); if (!t) return;
       const tr = D.tab2[k];
       let h = `<thead><tr><th rowspan="2">Morphology</th><th rowspan="2">Model</th><th rowspan="2">Size</th><th colspan="2" class="gl">Vis. integrity ↑</th><th colspan="2" class="gl">PSNR ↑</th><th colspan="2" class="gl">Text align. ↑</th><th colspan="2" class="gl">FVD ↓</th><th colspan="2" class="gl">${k === "mv" ? "RIGIS ↑" : "KIVA ↓"}</th></tr>
         <tr>${'<th class="gl">Mkv</th><th>Non-Mkv</th>'.repeat(5)}</tr></thead><tbody>`;
@@ -303,8 +300,7 @@
       });
       t.innerHTML = h + "</tbody>"; t.dataset.k = k;
     };
-    U.seg(document.getElementById("t2Seg"), [{ k: "mv", t: "Multi-view tracks · RIGIS" }, { k: "sv", t: "Single-view tracks · KIVA" }], "mv", show);
-    show("mv");
+    show("mv"); show("sv");
   }
 
   /* ---------- Table C4 depth ---------- */
@@ -496,8 +492,97 @@
     }).catch(e => console.error("swarm", e));
   }
 
+  /* ---------- §3.1 one real episode per configuration ---------- */
+  function dsClips() {
+    const el = document.getElementById("dsClips"); if (!el) return;
+    const C = [
+      ["rc", "RoboChallenge", "Single-arm", 1, "press the pink, blue, and green buttons in sequence"],
+      ["droid", "DROID", "Single-arm", 3, "Pick up the left spice bottle on the right of the utensil holding bucket and put it on the left side of the top shelf"],
+      ["aloha1", "AIST Bimanual", "Bimanual", 1, "fold blue towel"],
+      ["aloha4", "AIST Bimanual", "Bimanual", 4, "handover clear zip bag upright"],
+      ["gr1", "GR00T Teleop GR1", "Humanoid", 1, "pick up milk carton to wooden shelf and plate"],
+      ["mmk2", "RoboCOIN", "Humanoid", 4, "put the water bottle and handle into the cardboard box"],
+    ];
+    el.innerHTML = C.map(([id, name, emb, v, ins]) => `<figure class="ds-clip"><div class="vid"><video muted loop playsinline preload="none" poster="assets/data/${id}.jpg" data-src="assets/data/${id}.mp4"></video><span class="tag">${v} view${v > 1 ? "s" : ""}</span></div>
+      <figcaption><b>${name}</b><span class="emb">${emb}</span><q>${ins}</q></figcaption></figure>`).join("");
+    U.lazyVideos(el);
+  }
+
+  /* ---------- RQ2: Table D3 as a static table ---------- */
+  function latTable() {
+    const t = document.getElementById("latTab"); if (!t || !D.latency) return;
+    const P = D.latency.physics, M = D.latency.multiview;
+    const best = (rows, j, lo) => { const v = rows.filter(r => r[1] !== "ours").map(r => r[j]); return lo ? Math.min(...v) : Math.max(...v); };
+    const cell = (rows, r, j, dec, lo, gl) => `<td class="${gl ? "gl" : ""}${r[j] === best(rows, j, lo) ? " best" : ""}">${r[j].toFixed(dec)}</td>`;
+    let h = `<thead><tr><th rowspan="2">Judge</th><th colspan="3" class="gl">Embodied physics</th><th colspan="3" class="gl">Multi-view consistency</th></tr>
+      <tr><th class="gl">Agree (%) ↑</th><th>Score std ↓</th><th>Latency (s) ↓</th><th class="gl">Agree (%) ↑</th><th>Score std ↓</th><th>Latency (s) ↓</th></tr></thead><tbody>`;
+    [["zs", "Vanilla zero-shot"], ["cot", "Chain-of-thought (CoT)"]].forEach(([k, g]) => {
+      h += `<tr class="grp"><td colspan="7">${g}</td></tr>`;
+      P.forEach((r, i) => { if (r[1] !== k) return; const m = M[i];
+        h += `<tr><td>${r[0]}</td>${cell(P, r, 2, 1, 0, 1)}${cell(P, r, 3, 3, 1)}${cell(P, r, 4, 3, 1)}${cell(M, m, 2, 1, 0, 1)}${cell(M, m, 3, 3, 1)}${cell(M, m, 4, 3, 1)}</tr>`; });
+    });
+    const k = P.find(r => r[1] === "ours"), g = M.find(r => r[1] === "ours");
+    h += `<tr class="grp"><td colspan="7">Our metrics</td></tr>
+      <tr class="ours"><td>KIVA / RIGIS</td><td class="gl" colspan="2"><span class="n">deterministic</span></td><td class="kv">${k[4].toFixed(3)}</td><td class="gl" colspan="2"><span class="n">deterministic</span></td><td class="rg">${g[4].toFixed(3)}</td></tr>`;
+    t.innerHTML = h + "</tbody>";
+  }
+
+  /* ---------- RQ1: the same clips, three judges ---------- */
+  function judges() {
+    const L = { B: ["bad", "Bad"], M: ["med", "Medium"], G: ["good", "Good"] };
+    const pill = k => `<span class="pill ${L[k][0]}">${L[k][1]}</span>`;
+    const card = (dir, c, ours) => {
+      const vlmOk = c.vlm.filter(v => v === c.h).length * 2 > c.vlm.length;
+      return `<figure class="judge${c.wide ? " wide" : ""}"><div class="vid"><video muted loop playsinline preload="none" poster="assets/qual/${c.id}.jpg" data-src="assets/${dir}/${c.id}.mp4"></video><span class="tag">${c.emb}</span></div>
+        <dl><div><dt>Humans</dt><dd>${pill(c.h)}</dd></div>
+        <div class="${vlmOk ? "" : "off"}"><dt>VLM</dt><dd>${c.vlm.map(pill).join("")}</dd></div>
+        <div class="me"><dt>${ours}</dt><dd>${pill(c.m)}<small>${c.why}</small></dd></div></dl></figure>`;
+    };
+    const K = [
+      { id: "halluc_severe", emb: "Bimanual", h: "B", vlm: ["B", "M", "G"], m: "B", why: "5.43× real p95" },
+      { id: "halluc_arm", emb: "Humanoid", h: "B", vlm: ["G", "G", "G"], m: "B", why: "1.67× real p95" },
+      { id: "halluc_single_arm", emb: "Single-arm", h: "B", vlm: ["G", "G", "G"], m: "B", why: "4.91× real p95" },
+      { id: "clean_bimanual", emb: "Bimanual", h: "G", vlm: ["B", "B", "B"], m: "G", why: "0.37× real p95" },
+    ];
+    const R = [
+      { id: "00096", emb: "Bimanual · 2 views", h: "B", vlm: ["G", "G", "G"], m: "B", why: "S = 0.744", wide: 1 },
+      { id: "00132", emb: "Humanoid · 2 views", h: "B", vlm: ["G", "G", "M"], m: "B", why: "S = 0.783", wide: 1 },
+      { id: "00278", emb: "Single-arm · 2 views", h: "G", vlm: ["B", "B", "B"], m: "G", why: "S = 0.917", wide: 1 },
+    ];
+    const k = document.getElementById("judgesK"), r = document.getElementById("judgesR");
+    if (k) { k.innerHTML = K.map(c => card("qual", c, "KIVA")).join(""); U.lazyVideos(k); }
+    if (r) { r.innerHTML = R.map(c => card("rigis", c, "RIGIS")).join(""); U.lazyVideos(r); }
+  }
+
+  /* ---------- Figure 6 (a, b) with the real episodes ---------- */
+  // ratings as placed in the paper's Figure 6a; speed-ups and scores from the WorldCache ladder runs
+  const F6 = {
+    a: {
+      sv: { src: "assets/f6/a_sv.mp4", good: ["MAS", "VLM", "MS"], med: [], bad: [["Human", "h"], ["KIVA", "k"]] },
+      mv: { src: "assets/f6/a_mv.mp4", good: ["RPE", "MVC", "VLM"], med: [["RIGIS", "r"]], bad: [["Human", "h"]] },
+    },
+    b: {
+      sv: [["dense", "1× speed", "KIVA 0", ""], ["opt", "2.1× faster", "KIVA 0", "ok"], ["over", "2.9× faster", "KIVA 16.7", "no"]],
+      mv: [["dense", "1× speed", "RIGIS 0.85", ""], ["opt", "2.2× faster", "RIGIS 0.84", "ok"], ["over", "3.0× faster", "RIGIS 0.74", "no"]],
+    },
+  };
+  function fig6() {
+    const el = document.getElementById("f6"); if (!el) return;
+    const tag = x => Array.isArray(x) ? `<span class="${x[1]}">${x[0]}</span>` : `<span>${x}</span>`;
+    const vid = (src, poster) => `<div class="cell"><video muted loop playsinline preload="none"${poster ? ` poster="${poster}"` : ""} data-src="${src}"></video></div>`;
+    const a = (k, lab) => { const r = F6.a[k]; return `<div><div class="sub6">${lab}</div><div class="ab${k === "mv" ? " wide" : ""}">${vid(r.src, r.src.replace(".mp4", ".jpg"))}
+      <div class="ladder"><div><span class="lv">Good</span><span class="who">${r.good.map(tag).join("")}</span></div>
+      <div><span class="lv">Med.</span><span class="who">${r.med.map(tag).join("")}</span></div>
+      <div><span class="lv">Bad</span><span class="who">${r.bad.map(tag).join("")}</span></div></div></div></div>`; };
+    const b = (k, lab) => `<div><div class="sub6">${lab}</div><div class="trio">${F6.b[k].map(([n, sp, sc, c]) => `<div>${vid(`assets/f6/${k}_${n}.mp4`, `assets/f6/${k}_${n}.jpg`)}<div class="ft"><span>${sp}</span><b class="${c}">${sc}</b></div></div>`).join("")}</div></div>`;
+    el.innerHTML = `<div class="col6"><h4>(a) KIVA and RIGIS side with humans</h4><div class="row6">${a("sv", "Single view · hallucinated sample")}${a("mv", "Multi-view · hallucinated sample")}</div></div>
+      <div class="col6"><h4>(b) RoboWorM finds the <em>optimal</em> speed-up</h4><div class="trio hdr"><div class="hd">Dense</div><div class="hd opt">Optimal</div><div class="hd over">Over-accelerated</div></div>
+      <div class="row6">${b("sv", "Single view · humanoid, DreamGen + WorldCache")}${b("mv", "Multi-view · humanoid, DreamGen + WorldCache")}</div></div>`;
+    U.lazyVideos(el);
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
-    [donuts, wm, tab1, align, swarm, latency, tab2, depth, accel].forEach(f => { try { f(); } catch (e) { console.error(f.name, e); } });
+    [donuts, dsClips, wm, tab1, latTable, judges, fig6, align, swarm, latency, tab2, depth, accel].forEach(f => { try { f(); } catch (e) { console.error(f.name, e); } });
     if (window.MathJax && MathJax.startup && MathJax.startup.promise) MathJax.startup.promise.catch(() => {});
   });
 })();

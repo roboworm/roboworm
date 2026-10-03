@@ -34,6 +34,16 @@
     });
   };
 
+  // muted looping clips: load on first approach, play only while on screen
+  U.lazyVideos = root => {
+    const vs = [...root.querySelectorAll("video[data-src]")];
+    const io = new IntersectionObserver(es => es.forEach(e => {
+      const v = e.target;
+      if (e.isIntersecting) { if (!v.src) v.src = v.dataset.src; v.play().catch(() => {}); } else v.pause();
+    }), { rootMargin: "200px 0px" });
+    vs.forEach(v => io.observe(v));
+  };
+
   const tip = () => document.getElementById("tip");
   U.tipShow = (html, x, y) => { const t = tip(); t.innerHTML = html; t.style.opacity = 1; const r = t.getBoundingClientRect(); t.style.left = Math.min(innerWidth - r.width - 8, x + 12) + "px"; t.style.top = Math.max(8, y - r.height - 10) + "px"; };
   U.tipHide = () => { tip().style.opacity = 0; };

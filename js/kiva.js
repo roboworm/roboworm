@@ -310,7 +310,7 @@
       setPh = timeline(f("tl"), d, {});
       verdicts(root, d); takeaway(f("take"), d);
     }
-    picker(f("picker"), show, "halluc_severe");
+    show("halluc_severe");
     show("halluc_severe");
     addEventListener("resize", U.debounce(() => { if (d) setPh = timeline(f("tl"), d, {}); }, 150));
     let visible = true;
@@ -355,12 +355,12 @@
     return s[i].map((c, j) => Math.round(c + (s[i + 1][j] - c) * u));
   }
   const LSTEPS = [
-    { k: "tok", li: "Cut the frame into 24×24 patch tokens", eq: "\\(\\mathcal{F}_\\tau = \\mathrm{DINOv3}(I_\\tau)\\)" },
-    { k: "att", li: "Keypoint queries read the patch tokens", eq: "\\(\\hat{\\mathbf{x}}_0 = g_\\theta(\\mathbf{x}_t, t, \\mathcal{F})\\)" },
-    { k: "den", li: "Denoise five runs and keep their mean", eq: "\\(\\mathbf{P} = \\mathcal{W}^{-1}\\Big(\\tfrac{1}{N}\\sum_{n=1}^{N} \\hat{\\mathbf{x}}_0^{(n)}\\Big)\\)" },
-    { k: "rig", li: "Measure every bone against its URDF length", eq: "\\(r_\\tau = \\lambda \\max_{(a,b)\\in\\mathcal{B}} \\big|\\,\\|\\mathbf{P}_{\\tau a}-\\mathbf{P}_{\\tau b}\\|_2 - L_{ab}\\big|\\)" },
-    { k: "adv", li: "Advance, and run the jerk stencil along each trail", eq: "\\(j_\\tau = \\tfrac{\\lambda}{\\Delta t^3}\\max_k \\|\\mathbf{P}_{\\tau k} - 3\\mathbf{P}_{\\tau-1,k} + 3\\mathbf{P}_{\\tau-2,k} - \\mathbf{P}_{\\tau-3,k}\\|_2\\)" },
-    { k: "cal", li: "Divide by the real-footage p95 and read the band", eq: "\\(s^d_S = v^d_S / \\theta^d,\\;\\; \\theta^d = Q_{0.95}\\{v^d_R\\},\\;\\; s_S = \\max_d s^d_S\\)" },
+    { k: "tok", li: "DINOv3 patch tokens of each frame", eq: "\\(\\mathcal{F}_\\tau = \\mathrm{DINOv3}(I_\\tau)\\)" },
+    { k: "att", li: "Reader g<sub>θ</sub> queries the tokens", eq: "\\(\\hat{\\mathbf{x}}_0 = g_\\theta(\\mathbf{x}_t, t, \\mathcal{F})\\)" },
+    { k: "den", li: "Average five denoised candidates", eq: "\\(\\mathbf{P} = \\mathcal{W}^{-1}\\Big(\\tfrac{1}{N}\\sum_{n=1}^{N} \\hat{\\mathbf{x}}_0^{(n)}\\Big)\\)" },
+    { k: "rig", li: "Rigidity: each bone against its URDF length", eq: "\\(r_\\tau = \\lambda \\max_{(a,b)\\in\\mathcal{B}} \\big|\\,\\|\\mathbf{P}_{\\tau a}-\\mathbf{P}_{\\tau b}\\|_2 - L_{ab}\\big|\\)" },
+    { k: "adv", li: "Jerk along each keypoint trail", eq: "\\(j_\\tau = \\tfrac{\\lambda}{\\Delta t^3}\\max_k \\|\\mathbf{P}_{\\tau k} - 3\\mathbf{P}_{\\tau-1,k} + 3\\mathbf{P}_{\\tau-2,k} - \\mathbf{P}_{\\tau-3,k}\\|_2\\)" },
+    { k: "cal", li: "Calibrate against real-video references", eq: "\\(s^d_S = v^d_S / \\theta^d,\\;\\; \\theta^d = Q_{0.95}\\{v^d_R\\},\\;\\; s_S = \\max_d s^d_S\\)" },
   ];
   const ORDER = LSTEPS.map(s => s.k);
   const CHECKS = [0, 4, 8, 12];
@@ -371,7 +371,9 @@
 
   function lab() {
     const root = document.getElementById("kivaLab"); if (!root) return;
-    const f = n => root.querySelector(`[data-f="${n}"]`);
+    // controls this page no longer shows resolve to detached stand-ins
+    const spare = {};
+    const f = n => root.querySelector(`[data-f="${n}"]`) || (spare[n] = spare[n] || document.createElement(n === "scrub" ? "input" : "div"));
     const cv = f("cv"), ctx = cv.getContext("2d");
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const heatC = document.createElement("canvas"), hctx = heatC.getContext("2d");
@@ -384,9 +386,9 @@
     f("steps").innerHTML = LSTEPS.map((s, i) => `<li data-k="${s.k}"><span class="i">${i + 1}</span><span>${s.li}</span></li>`).join("");
     f("steps").addEventListener("click", e => { const li = e.target.closest("li"); if (li && d) { st.ph = li.dataset.k; st.t = 0; if (st.ph === "cal") st.tau = 15; sync(); } });
     U.seg(f("sp"), [0.5, 1, 2, 4].map(v => ({ k: String(v), t: v + "×" })), "1", k => { speed = +k; });
-    const PLAY = '<svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><path d="M2.5 1.5v9l8-4.5z"/></svg>Play';
-    const PAUSE = '<svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" width="3" height="9"/><rect x="7" y="1.5" width="3" height="9"/></svg>Pause';
-    const setPlay = p => { playing = p; f("play").innerHTML = p ? PAUSE : PLAY; f("play").classList.toggle("on", p); };
+    const PLAY = '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2.5 1.5v9l8-4.5z"/></svg>';
+    const PAUSE = '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" width="3" height="9"/><rect x="7" y="1.5" width="3" height="9"/></svg>';
+    const setPlay = p => { playing = p; f("play").innerHTML = p ? PAUSE : PLAY; f("play").classList.toggle("on", p); f("play").setAttribute("aria-label", p ? "Pause" : "Play"); };
     setPlay(playing);
     f("play").addEventListener("click", () => setPlay(!playing));
     f("next").addEventListener("click", () => { if (d) { st.t = dur(st.ph); step(0); } });
@@ -537,7 +539,7 @@
       for (let a = -SWAY; a <= SWAY + 1e-6; a += SWAY / 4) d.mean5.flat().concat(extra).forEach(p => { const q = scr(p, d.fitYaw + a, d.fitEl); hw = Math.max(hw, Math.abs(q[0])); hh = Math.max(hh, Math.abs(q[1])); });
       d.fitW = hw; d.fitH = hh;
     }
-    picker(f("picker"), show, "halluc_severe");
+    show("halluc_severe");
 
     /* ---------- drawing helpers ---------- */
     function contain(ar, x, y, w, h) { let fw = w, fh = w / ar; if (fh > h) { fh = h; fw = h * ar; } return { x: x + (w - fw) / 2, y: y + (h - fh) / 2, w: fw, h: fh }; }

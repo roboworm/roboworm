@@ -32,17 +32,17 @@
 
   // one entry per step in the side list; phases of a keyframe run in this order
   const STEPS = [
-    { ph: "depth", li: "Depth and a camera for each view", pill: "VGGT-Ω: depth and camera per view",
+    { ph: "depth", li: "VGGT-Ω: depth and a camera per view", pill: "VGGT-Ω: depth and camera per view",
       eq: String.raw`\(D_v,\;(K_v, R_v, t_v) = \text{VGGT-}\Omega(I_1, I_2)\)` },
     { ph: "lift", li: "Lift both views into one 3-D cloud", pill: "Lift every pixel into 3-D",
       eq: String.raw`\(\mathbf X = R_v^{\top}\big(D_v(u)\,K_v^{-1}\tilde u - t_v\big)\)` },
     { ph: "reproj", li: "Render each view from the other camera", pill: "Render each view from the other camera",
       eq: String.raw`\(\Delta_X = \operatorname{RMSE}\big(I_v, \hat I_v\big),\quad \Delta_D = \overline{\lvert D_v - \hat D_v\rvert}\)` },
-    { ph: "agree", li: "Score the timestep, s(1)·s(2)", pill: "Score this timestep",
+    { ph: "agree", li: "Geometric consistency, s(1)·s(2)", pill: "Score this timestep",
       eq: String.raw`\(s(v) = \tfrac12\big[(1-\Delta_X) + (1-(\Delta_D/\tilde d)^2)\big],\quad \textstyle\prod_v s(v)\)` },
-    { ph: "pose", li: "Track camera 2 against τ = 0", pill: "Has camera 2 moved?",
+    { ph: "pose", li: "Camera pose stability against τ = 0", pill: "Has camera 2 moved?",
       eq: String.raw`\(S_{\text{ext}} = \tfrac12\big(e^{-\sigma_R/5} + e^{-\sigma_t}\big),\quad S_{\text{int}} = \tfrac1V\textstyle\sum_v e^{-\sigma_K}\)` },
-    { ph: "combine", li: "Combine into S and rank", pill: "Combine into one score",
+    { ph: "combine", li: "Combine into S", pill: "Combine into one score",
       eq: String.raw`\(S = \tfrac12\big(S_{\text{geo}} + S_{\text{pose}}\big),\quad S_{\text{geo}} = \tfrac1T\textstyle\sum_\tau \prod_v s(v)\)` },
   ];
   const SI = Object.fromEntries(STEPS.map((s, i) => [s.ph, i]));
@@ -430,7 +430,9 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     const root = document.getElementById("rigisLab"); if (!root) return;
-    const f = n => root.querySelector(`[data-f="${n}"]`);
+    // controls this page no longer shows resolve to detached stand-ins
+    const spare = {};
+    const f = n => root.querySelector(`[data-f="${n}"]`) || (spare[n] = spare[n] || document.createElement(n === "scrub" ? "input" : "div"));
     const stage = Stage(f("cv"));
     let d = null, T0 = 0, playing = !matchMedia("(prefers-reduced-motion: reduce)").matches, speed = 1, visible = false, loadN = 0, last = 0, ready = false, sig = "";
 
@@ -451,7 +453,8 @@
     function setPlaying(on) {
       playing = on;
       f("play").classList.toggle("on", on);
-      f("play").innerHTML = on ? '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" width="3" height="9"/><rect x="7" y="1.5" width="3" height="9"/></svg>Pause' : '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 1.5v9l7-4.5z"/></svg>Play';
+      f("play").innerHTML = on ? '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" width="3" height="9"/><rect x="7" y="1.5" width="3" height="9"/></svg>' : '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 1.5v9l7-4.5z"/></svg>';
+      f("play").setAttribute("aria-label", on ? "Pause" : "Play");
     }
     f("play").addEventListener("click", () => setPlaying(!playing));
     f("next").addEventListener("click", () => { if (!d) return; const { j } = cur(); T0 = j + 1 < d.ev.length ? d.ev[j + 1].t0 : 0; });
@@ -468,7 +471,7 @@
       d.key.forEach(k => k.views.forEach(v => { img(v.depth); img(v.resid); }));
       f("scrub").max = d.frames.length - 1;
       f("nPeers").textContent = `${d.peers.length} ${EMB[d.emb]}`;
-      verdicts(f("verdicts"), d);
+      if (root.querySelector('[data-f="verdicts"]')) verdicts(f("verdicts"), d);
       f("take").innerHTML = `<span class="lbl">This clip</span><span class="txt">${CLIPS.find(c => c.id === id).take(d, ord(Math.round(d.pct * 100)), d.recomputed)}</span>`;
       grab(d, () => n === loadN, () => { if (n === loadN) ready = true; }).catch(() => { ready = true; });
     }
