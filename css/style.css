@@ -800,3 +800,13 @@ table.t tr.ours td.kv { color: var(--kiva); } table.t tr.ours td.rg { color: var
 .f6 .ab.wide .cell video { aspect-ratio: 772 / 216; object-fit: contain; }
 .f6 .ab.wide .ladder { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: none; column-gap: .6rem; }
 .f6 .ab.wide .ladder > div { border-top: 0; grid-template-columns: minmax(0, 1fr); gap: .25rem; }
+/* abstract highlights: one colour per idea, matching Fig. 1 */
+.abstract mark { padding: 0 .1em; margin: 0 -.05em; border-radius: 3px; color: inherit; font-weight: 600; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.abstract mark.m-d { background: var(--data-bg); color: var(--data); }
+.abstract mark.m-k { background: var(--kiva-bg); color: var(--kiva); }
+.abstract mark.m-r { background: var(--rigis-bg); color: var(--rigis); }
+.abstract mark.m-a { background: var(--accel-bg); color: var(--accel); }
+.abstract mark.m-x { background: none; font-weight: 500; text-decoration: underline 2px color-mix(in srgb, var(--bad) 55%, transparent); text-underline-offset: 3px; }
+.abs3 li.d .k { color: var(--data); border-color: color-mix(in srgb, var(--data) 40%, transparent); background: var(--data-bg); }
+.abs3 li.kr .k { color: var(--rigis); border-color: color-mix(in srgb, var(--rigis) 40%, transparent); background: linear-gradient(135deg, var(--kiva-bg) 50%, var(--rigis-bg) 50%); }
+.abs3 li.a .k { color: var(--accel); border-color: color-mix(in srgb, var(--accel) 40%, transparent); background: var(--accel-bg); }
