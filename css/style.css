@@ -715,7 +715,7 @@ section.sec.sub { border-top: 0; padding-top: clamp(1.5rem, 3.5vw, 2.8rem); }
 .abs3 li { display: grid; grid-template-columns: 1.9rem minmax(0, 1fr); gap: .7rem; align-items: baseline; }
 .abs3 .k { font: 600 .78rem/1 var(--f-mono); color: var(--ink-3); border: 1px solid var(--line); border-radius: 6px; padding: .3rem 0; text-align: center; }
 .abs3 p { margin: 0; }
-.abstract .hk, .abstract .hr { color: var(--navy); }
+.abstract .hk, .abstract .hr { color: var(--ink); }
 
 .ds-clips { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .7rem; margin-top: 1.6rem; }
 @media (max-width: 1100px) { .ds-clips { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
@@ -801,5 +801,6 @@ table.t tr.ours td.kv { color: var(--kiva); } table.t tr.ours td.rg { color: var
 .f6 .ab.wide .ladder { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: none; column-gap: .6rem; }
 .f6 .ab.wide .ladder > div { border-top: 0; grid-template-columns: minmax(0, 1fr); gap: .25rem; }
 /* abstract highlights: one colour per idea, matching Fig. 1 */
-.abstract mark { background: none; padding: 0; margin: 0; color: var(--navy); font-weight: 600; }
-.abs3 li .k { color: var(--navy); border-color: color-mix(in srgb, var(--navy) 35%, transparent); background: color-mix(in srgb, var(--navy) 6%, transparent); }
+.abstract { --hl: #1d4ed8; }
+.abstract mark { background: none; padding: 0; margin: 0; color: var(--hl); font-weight: 600; }
+.abs3 li .k { color: var(--hl); border-color: color-mix(in srgb, var(--hl) 35%, transparent); background: color-mix(in srgb, var(--hl) 6%, transparent); }
