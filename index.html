@@ -36,9 +36,15 @@
         <li><a href="#rigis" style="--c:var(--rigis)"><span>3.4.2</span>RIGIS</a></li>
       </ol>
     </li>
-    <li><a href="#results" style="--c:var(--audit)"><span>4.2</span>Human alignment</a></li>
-    <li><a href="#models" style="--c:var(--navy)"><span>4.3</span>Long-horizon drift</a></li>
-    <li><a href="#acceleration" style="--c:var(--accel)"><span>4.4</span>Acceleration</a></li>
+    <li><a href="#experiments" style="--c:var(--audit)" data-kids="rq1 rq2 rq3 rq4 rq5"><span>4</span>Experiments</a>
+      <ol class="kids">
+        <li><a href="#rq1" style="--c:var(--audit)"><span>RQ1</span>Human alignment</a></li>
+        <li><a href="#rq2" style="--c:var(--audit)"><span>RQ2</span>Stability &amp; efficiency</a></li>
+        <li><a href="#rq3" style="--c:var(--audit)"><span>RQ3</span>Cross-metric</a></li>
+        <li><a href="#rq4" style="--c:var(--navy)"><span>RQ4</span>Long-horizon drift</a></li>
+        <li><a href="#rq5" style="--c:var(--accel)"><span>RQ5</span>Acceleration</a></li>
+      </ol>
+    </li>
     <li><a href="#limits" style="--c:var(--ink-2)"><span>5</span>Limitations</a></li>
     <li><a href="#bibtex" style="--c:var(--ink)"><span>&middot;</span>BibTeX</a></li>
   </ol>
@@ -57,9 +63,7 @@
       <li><a class="l" href="#method">Physics audit</a></li>
       <li><a class="l" href="#kiva">KIVA</a></li>
       <li><a class="l" href="#rigis">RIGIS</a></li>
-      <li><a class="l" href="#results">Human alignment</a></li>
-      <li><a class="l" href="#models">Long-horizon drift</a></li>
-      <li><a class="l" href="#acceleration">Acceleration</a></li>
+      <li><a class="l" href="#experiments">Experiments</a></li>
       <li><a class="l" href="#bibtex">BibTeX</a></li>
     </ul>
   </div>
@@ -240,79 +244,65 @@
   </div>
 </section>
 
-<section class="sec" id="results" style="--c:var(--audit)">
+<section class="sec" id="experiments" style="--c:var(--audit)">
   <div class="wrap">
-    <div class="sec-head"><span class="secno">§4.2</span><h2>Human alignment and cross-metric analysis</h2></div>
+    <div class="sec-head"><span class="secno">§4</span><h2>Experiments</h2></div>
     <div class="indent">
-      <p class="lede">Two annotators, with expert adjudication, rated 291 single-view and 300 multi-view videos on a three-point scale. Four frontier VLMs judged the same videos three times each, zero-shot and with chain-of-thought.</p>
-
-      <div class="rq">
-        <div class="q">RQ1</div>
-        <h3>Do KIVA and RIGIS align better with human judgment than VLM judges?</h3>
-        <p class="a">Yes. KIVA raises agreement with human hallucination labels from 58.4% to 73.5%, and RIGIS raises the Spearman correlation with human preferences from 0.326 to 0.749. The best VLM judge, Gemma 4 31B with chain-of-thought, stays below both.</p>
+      <div class="rq" id="rq1">
+        <div class="rq-header">
+          <div class="q">RQ1: Do KIVA and RIGIS align better with human judgment than VLM judges?</div></span>
+        </div>
+        <p class="a">Yes. KIVA raises agreement with human hallucination labels from 58.4% to 73.5%, and RIGIS raises the Spearman correlation with human preferences from 0.326 to 0.749.</p>
       </div>
-    </div>
-    <figure class="overview">
-      <div class="figimg" data-zoom><img src="assets/fig/fig4.png" alt="Figure 4: Spearman correlation, overlap or pairwise accuracy with human scores, and latency, for four VLM judges and for KIVA and RIGIS" loading="lazy"></div>
-      <figcaption class="cap"><b>Figure 4.</b> KIVA (top) and RIGIS (bottom) against four VLM judges, zero-shot and with chain-of-thought: correlation and accuracy with human scores, and latency per video second.</figcaption>
-    </figure>
-    <div class="indent">
+      <div class="rq" id="rq2">
+        <div class="q">RQ2: How do KIVA and RIGIS compare to VLMs in evaluation stability and efficiency?</div>
+        <p class="a">VLM verdicts are unstable across runs, with per-video score standard deviations reaching 0.591. KIVA and RIGIS are deterministic and take 0.29s and 0.36s for 1 video second compared to 0.75s to 17.4s for VLMs.</p>
+        <!-- <div class="tbl-wrap"><table class="t" id="latTab"></table></div> -->
+        <!-- <p class="cap">Table D3. Agree: share of videos with identical scores across runs. Score std: mean per-video standard deviation on the 1–3 scale. Latency: seconds per video second.</p> -->
+      </div>
+      <figure class="overview">
+        <div class="figimg" data-zoom><img src="assets/fig/fig4.png" alt="Figure 4: Spearman correlation, overlap or pairwise accuracy with human scores, and latency, for four VLM judges and for KIVA and RIGIS" loading="lazy"></div>
+        <figcaption class="cap"><b>Figure 4.</b> KIVA and RIGIS against four VLM judges, zero-shot and with CoT: correlation and accuracy with human scores, and latency per video second.</figcaption>
+      </figure>
       <div class="rq">
-        <h3 class="h4">The same clips, three judges</h3>
+        <h3 class="h4">RIGIS and KIVA align with human judgment where VLMs fail</h3>
         <div class="judges" id="judgesK"></div>
         <div class="judges" id="judgesR"></div>
-        <p class="cap">VLM: three runs of one judge per clip (Gemma 4 31B + CoT for the multi-view clips). KIVA bands use the per-morphology cuts of Appendix B.1. RIGIS bands are tertiles of the 100 rated clips per morphology, drawn for this page; the paper reports only rank correlation.</p>
       </div>
 
-      <div class="rq">
-        <div class="q">RQ2</div>
-        <h3>How do KIVA and RIGIS compare to VLMs in evaluation stability and efficiency?</h3>
-        <p class="a">VLM verdicts change between runs: the per-video score std ranges from 0.076 on embodied physics to 0.591 on multi-view consistency, and chain-of-thought adds heavy latency. KIVA and RIGIS are deterministic and take 0.289 s and 0.356 s.</p>
-        <div class="tbl-wrap"><table class="t" id="latTab"></table></div>
-        <p class="cap">Table D3. Agree: share of videos with identical scores across runs. Score std: mean per-video standard deviation on the 1–3 scale. Latency: seconds per video second.</p>
+      <div class="rq" id="rq3">
+        <div class="q">RQ3: How do existing metrics correlate with KIVA and RIGIS?</div>
+        <p class="a">KIVA uses kinematic constraints to evaluate physical plausibility beyond surface metrics (MS; MAS). RIGIS evaluates holistic multi-view consistency where conventional feature matching and SLAM (MVC; SLAM RPE) fail under large viewpoints (<a href="#fig6">Figure 6a</a>).</p>
       </div>
 
-      <div class="rq">
-        <div class="q">RQ3</div>
-        <h3>How do existing metrics correlate with KIVA and RIGIS?</h3>
-        <p class="a">Motion Smoothness and Motion Amplitude Score capture only surface transitions; KIVA checks the kinematic constraints of the embodiment. Feature matching (MVC) and SLAM RPE fail under large viewpoint changes, while RIGIS stays close to human judgment (<a href="#fig6">Figure 6a</a>).</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="sec" id="models" style="--c:var(--navy)">
-  <div class="wrap">
-    <div class="sec-head"><span class="secno">§4.3</span><h2>Long-horizon drift in video world models</h2></div>
-    <div class="indent">
-      <div class="rq" style="margin-top:1.8rem">
-        <div class="q">RQ4</div>
-        <h3>How do video world models perform across morphologies and long horizons?</h3>
-        <p class="a">Ctrl-World attends across views and time explicitly; DreamGen sees a 2 × 2 tiled frame through plain self-attention. RIGIS picks up the difference on every multi-view comparison. KIVA degrades most in the two configurations with the deepest rollouts, single-arm DreamGen and DreamDojo.</p>
+      <div class="rq" id="rq4">
+        <div class="q">RQ4: How do video world models perform across morphologies and long horizons?</div>
+        <ul class="a">
+          <li style="margin-bottom: 8px;">
+            <strong>Longer rollouts show stronger degradation.</strong> KIVA degrades mainly in the two deepest configura-
+            tions of single-arm DreamGen and DreamDojo, where non-Markovian rollouts have higher rollout depth (i.e., more frames).
+          </li>
+          <li>
+            <strong>Architecture and cross-view consistency.</strong> Ctrl-World outperforms DreamGen in RIGIS across all multi-view settings.
+          </li>
+        </ul>
+        
         <h4 class="tcap">(a) Multi-view tracks · RIGIS ↑</h4>
         <div class="tbl-wrap"><table class="t" id="tab2mv"></table></div>
         <h4 class="tcap">(b) Single-view tracks · KIVA ↓</h4>
         <div class="tbl-wrap"><table class="t" id="tab2sv"></table></div>
-        <p class="cap">Table 2. Medians under Markovian (Mkv) and non-Markovian (Non-Mkv) dynamics; bold is the better model per morphology. Single-view FVD is not comparable across models.</p>
+        <p class="cap">Table 2. Dense world-model results show a setting-dependent performance gap: Ctrl-World dominates multi-view, while DreamDojo leads single-view tracks.</p>
       </div>
-      <div class="rq">
-        <h3 class="h4">Within a clip, severity grows with rollout depth</h3>
-        <p class="a">In 130 of 193 multi-chunk clips the segment severity rises with the chunk index (mean ρ&nbsp;=&nbsp;+0.20, sign test p&nbsp;&lt;&nbsp;10<sup>−3</sup>), consistent with error accumulating over the rollout.</p>
-        <div class="card chartcard"><svg id="depthChart" role="img" aria-label="KIVA versus rollout depth"></svg></div>
-        <p class="cap">Table C4. Median rollout depth per clip against KIVA violation rate, Markovian vs. non-Markovian.</p>
-      </div>
-    </div>
-  </div>
-</section>
 
-<section class="sec" id="acceleration" style="--c:var(--accel)">
-  <div class="wrap">
-    <div class="sec-head"><span class="secno">§4.4</span><h2>Acceleration trade-offs</h2></div>
-    <div class="indent">
-      <div class="rq" style="margin-top:1.8rem">
-        <div class="q">RQ5</div>
-        <h3>How does acceleration trade off speed and structural integrity in video world models?</h3>
-        <p class="a">Caching holds up best: a 1.7× mean speed-up for a RIGIS change of −0.004, and it wins all 12 configurations. Its strongest member, WorldCache, averages 1.8× and reaches the benchmark-best 2.3× on DreamGen humanoid and single-arm multi-view. Token pruning loses 13.4% NR quality for only 1.2×, and sparse attention is limited by low attention runtimes.</p>
+      <figure class="quality-comparison">
+        <div class="figimg" data-zoom><img src="assets/qual/figure6c.png" alt="Correlation
+          between KIVA degradation and increased video chunk across Markovian and Non-Markovian tasks." loading="lazy"></div>
+        <figcaption class="cap">Correlation between KIVA degradation and increased video chunk across Markovian and Non-Markovian tasks..</figcaption>
+      </figure>
+
+      <div class="rq" id="rq5">
+        <div class="q">RQ5: How does acceleration trade off speed and structural integrity in video world models?</div>
+        <p class="a">Caching offers the most robust acceleration, achieving 1.7× speedup with minimal quality loss and winning all 12 configurations. WorldCache is its strongest, at 1.8× mean and benchmark-best 2.3× on DreamGen humanoid and single-arm multi-view.</p>
       </div>
       <div class="card chartcard">
         <div class="controls">
