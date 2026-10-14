@@ -78,7 +78,7 @@
         a.classList.toggle("in", (a.dataset.kids || "").split(" ").includes(e.target.id));
       });
     }), { rootMargin: "-45% 0px -50% 0px" });
-    document.querySelectorAll("section.sec").forEach(s => io.observe(s));
+    document.querySelectorAll("section.sec, .rq[id]").forEach(s => io.observe(s));
     const bar = document.getElementById("progress");
     const prog = () => { const h = document.documentElement; bar.style.width = (h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight) * 100) + "%"; };
     if (bar) { addEventListener("scroll", prog, { passive: true }); prog(); }

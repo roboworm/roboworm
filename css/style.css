@@ -804,3 +804,7 @@ table.t tr.ours td.kv { color: var(--kiva); } table.t tr.ours td.rg { color: var
 .abstract { --hl: #1d4ed8; }
 .abstract mark { background: none; padding: 0; margin: 0; color: var(--hl); font-weight: 600; }
 .abs3 li .k { color: var(--hl); border-color: color-mix(in srgb, var(--hl) 35%, transparent); background: color-mix(in srgb, var(--hl) 6%, transparent); }
+.quality-comparison {
+  width: 80%;
+  margin: 2rem auto 0; /* căn giữa */
+}

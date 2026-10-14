@@ -575,8 +575,8 @@
       <div><span class="lv">Med.</span><span class="who">${r.med.map(tag).join("")}</span></div>
       <div><span class="lv">Bad</span><span class="who">${r.bad.map(tag).join("")}</span></div></div></div></div>`; };
     const b = (k, lab) => `<div><div class="sub6">${lab}</div><div class="trio">${F6.b[k].map(([n, sp, sc, c]) => `<div>${vid(`assets/f6/${k}_${n}.mp4`, `assets/f6/${k}_${n}.jpg`)}<div class="ft"><span>${sp}</span><b class="${c}">${sc}</b></div></div>`).join("")}</div></div>`;
-    el.innerHTML = `<div class="col6"><h4>(a) KIVA and RIGIS side with humans</h4><div class="row6">${a("sv", "Single view · hallucinated sample")}${a("mv", "Multi-view · hallucinated sample")}</div></div>
-      <div class="col6"><h4>(b) RoboWorM finds the <em>optimal</em> speed-up</h4><div class="trio hdr"><div class="hd">Dense</div><div class="hd opt">Optimal</div><div class="hd over">Over-accelerated</div></div>
+    el.innerHTML = `<div class="col6"><h4>(a) Ours Aligns Better w/ Human Pref.</h4><div class="row6">${a("sv", "Single view · hallucinated sample")}${a("mv", "Multi-view consistency")}</div></div>
+      <div class="col6"><h4>(b) RoboWorM finds <em>Optimal</em> Quality vs. Speed Trade-off</h4><div class="trio hdr"><div class="hd">Dense</div><div class="hd opt">Optimal</div><div class="hd over">Over-accelerated</div></div>
       <div class="row6">${b("sv", "Single view · humanoid, DreamGen + WorldCache")}${b("mv", "Multi-view · humanoid, DreamGen + WorldCache")}</div></div>`;
     U.lazyVideos(el);
   }
