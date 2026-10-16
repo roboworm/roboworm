@@ -46,6 +46,7 @@
       </ol>
     </li>
     <li><a href="#limits" style="--c:var(--ink-2)"><span>5</span>Limitations</a></li>
+    <li><a href="#howto" style="--c:var(--ink)"><span>&middot;</span>How to extend?</a></li>
     <li><a href="#bibtex" style="--c:var(--ink)"><span>&middot;</span>BibTeX</a></li>
   </ol>
   <div class="side-foot">
@@ -64,6 +65,7 @@
       <li><a class="l" href="#kiva">KIVA</a></li>
       <li><a class="l" href="#rigis">RIGIS</a></li>
       <li><a class="l" href="#experiments">Experiments</a></li>
+      <li><a class="l" href="#howto">How to extend?</a></li>
       <li><a class="l" href="#bibtex">BibTeX</a></li>
     </ul>
   </div>
@@ -325,6 +327,7 @@
   </div>
 </section>
 
+
 <section class="sec" id="limits" style="--c:var(--ink-2)">
   <div class="wrap">
     <div class="sec-head"><span class="secno">§5</span><h2>Limitations</h2></div>
@@ -333,6 +336,33 @@
       <div class="card"><b>Rigid bodies only</b>They cover rigid-body motion and miss deformable materials and force-driven dynamics.</div>
       <div class="card"><b>Output-level audit</b>The acceleration audit measures degradation in the output, not which internal layers lose physical fidelity.</div>
     </div>
+  </div>
+</section>
+
+<section class="sec" id="howto" style="--c:var(--ink)">
+  <div class="wrap">
+    <div class="sec-head"><span class="secno">How to</span><h2>How to extend RoboWorM?</h2></div>
+    <div class="indent">
+      <p class="lede" style="margin-bottom: 12px;">RoboWorM allows researchers to scale and extend the benchmark across three distinct paths, scoring rollouts with KIVA and RIGIS:</p>
+      
+      <ul class="a" style="margin: 0 0 16px 0; list-style-type: disc; padding-left: 20px;">
+        <li class="bullet-item" style="display: block; position: relative; margin-bottom: 8px; line-height: 1.5;">
+          <strong>Path A (New Video World Model):</strong> Fine-tunes a new model on the released corpus, evaluates it across the standard grid, and adds a new table row.
+        </li>
+        <li class="bullet-item" style="display: block; position: relative; margin-bottom: 8px; line-height: 1.5;">
+          <strong>Path B (New Embodiment or Dataset):</strong> Integrates new data by formatting native representations, fine-tuning across three backbones, performing physical audits, and adding a new table column <em>(requires training)</em>.
+        </li>
+        <li class="bullet-item" style="display: block; position: relative; margin-bottom: 8px; line-height: 1.5;">
+          <strong>Path C (New Acceleration Method):</strong> Applies intervention techniques directly to existing checkpoints without retraining, evaluating speed versus quality on the standard grid.
+        </li>
+      </ul>
+
+      <p class="lede" style="margin-top: 0; margin-bottom: 16px;">Check out <a href="https://github.com/ltdoanhwork/RoboWorM#6-extending-roboworm" target="_blank">Extending RoboWorM</a> to contribute new world models, embodiments, or acceleration methods.</p>
+    </div>
+    <figure class="overview">
+      <div class="figimg" data-zoom><img src="assets/fig/fig_extension_flow.jpg" alt="How to extend RoboWorM: (A) add a new world model, (B) add a new embodiment dataset, (C) add a new fast inference method" loading="lazy"></div>
+      <figcaption class="cap"><b>Figure E1.</b> The three scaling dimensions for RoboWorM.</figcaption>
+    </figure>
   </div>
 </section>
 
