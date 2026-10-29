@@ -129,12 +129,17 @@
   .authors .author-names > span:not(:last-child)::after { content: ", "; }
   .authors .author-names sup,
   .authors .affils sup {
-    font-size: .68em; font-weight: 600; color: var(--ink-2);
+    font-size: .80em; font-weight: 600; color: var(--ink-2);
   }
   .authors .affils {
-    margin: .7rem 0 0; font-size: .82rem; line-height: 1.55; color: var(--ink-2);
+    margin: .8rem 0 0; font-size: .85rem; line-height: 1.55; color: var(--ink-2);
   }
-  .authors .affils > span:not(.note) + span:not(.note)::before { content: ", "; }
+  /* Keep each affiliation + its trailing comma on one line */
+  .authors .affils > span:not(.note) {
+    display: inline-block;
+    white-space: nowrap;
+  }
+  .authors .affils > span:not(.note):has(+ span:not(.note))::after { content: ","; }
   .authors .affils > span:not(.note) + span.note::before {
     content: "\A";
     white-space: pre;
