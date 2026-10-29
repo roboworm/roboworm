@@ -177,7 +177,7 @@
     --wm-accent: #1f8a5b;
     margin: 1.1rem 0 0; max-width: 48rem;
     padding: .75rem 1rem .75rem 1.05rem;
-    font: 500 .95rem/1.55 var(--f-ui); color: var(--ink);
+    font: 500 .95rem/1.55 var(--f-body); color: var(--ink);
     background: color-mix(in srgb, var(--wm-accent) 8%, #fff);
     border: 1px solid color-mix(in srgb, var(--wm-accent) 35%, transparent);
     border-left: 4px solid var(--wm-accent);
