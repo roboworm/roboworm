@@ -169,10 +169,16 @@
   .thesis { margin-top: 1.2rem; font-size: 1.22rem; line-height: 1.5; max-width: 34rem; color: var(--ink); }
   .thesis em { font-style: italic; color: var(--audit); }
   .venue {
-    margin: 1rem 0 0; max-width: 48rem;
-    font: 500 .95rem/1.55 var(--f-ui); color: var(--ink-2);
+    --wm-accent: #1f8a5b;
+    margin: 1.1rem 0 0; max-width: 48rem;
+    padding: .75rem 1rem .75rem 1.05rem;
+    font: 500 .95rem/1.55 var(--f-ui); color: var(--ink);
+    background: color-mix(in srgb, var(--wm-accent) 8%, #fff);
+    border: 1px solid color-mix(in srgb, var(--wm-accent) 35%, transparent);
+    border-left: 4px solid var(--wm-accent);
+    border-radius: 0 10px 10px 0;
   }
-  .venue b { color: var(--audit); font-weight: 700; }
+  .venue b { color: var(--wm-accent); font-weight: 700; }
   .venue-meta { color: var(--ink-2); font-weight: 500; }
   /* Match https://do-robots-need-world-models.github.io/ brand mark */
   .workshop-title {
