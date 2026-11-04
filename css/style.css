@@ -146,11 +146,11 @@
   }
   
   .affil-logos {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-items: center;
-    gap: .75rem 1.15rem;
+    justify-content: center;
+    gap: .9rem 1.6rem;
     margin-top: .95rem;
     padding-top: .85rem;
     border-top: 1px solid var(--line);
@@ -164,7 +164,10 @@
     object-position: center;
   }
   
+  .affil-logos img.logo-lg { height: 44px; max-height: 44px; }
+
   @media (max-width: 700px) {
+    .affil-logos img.logo-lg { height: 30px; max-height: 30px; }
     .affil-logos img { 
       /* Giảm chiều cao trên điện thoại từ 32px xuống 22px hoặc 24px */
       height: 22px; 
