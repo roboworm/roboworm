@@ -145,31 +145,29 @@
     white-space: pre;
   }
   
-  /* Logo wall: a grid read left to right, row by row. Every logo is
-     trimmed to its ink box and drawn at the same height; columns are as
-     wide as their widest logo, so logos line up both across and down.
-     --S is the sum of each column's widest aspect ratio for --n columns,
-     which sets the largest height that still fits the container. */
+  /* Logo wall: 4 equal columns read left to right, row by row. Logos are
+     trimmed to their ink box and share one height, centred on each cell's
+     axes. --s nudges logos with thin or multi-line text that look small at
+     equal height; very wide logos shrink to fit their cell. */
   .affil-logos {
-    --n: 6; --S: 30.83; --gx: 1.25rem;
-    container-type: inline-size;
+    --h: 46px;
     display: grid;
-    grid-template-columns: repeat(var(--n), auto);
-    justify-content: space-between;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     justify-items: center;
     align-items: center;
-    gap: 1.1rem var(--gx);
+    gap: 1.5rem 1.75rem;
     margin-top: 1.2rem;
-    padding-top: 1.2rem;
+    padding-top: 1.4rem;
     border-top: 1px solid var(--line);
   }
   .affil-logos img {
-    height: min(38px, calc((100cqw - (var(--n) - 1) * var(--gx)) / var(--S)));
+    height: calc(var(--h) * var(--s, 1));
     width: auto;
-    max-width: none;
+    max-width: 100%;
+    object-fit: contain;
   }
-  @media (max-width: 900px) { .affil-logos { --n: 4; --S: 20.28; } }
-  @media (max-width: 560px) { .affil-logos { --n: 2; --S: 11.71; --gx: 1rem; } }
+  @media (max-width: 900px) { .affil-logos { --h: 38px; gap: 1.2rem 1.25rem; } }
+  @media (max-width: 560px) { .affil-logos { --h: 28px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; } }
   /* Append ?grid to the URL to draw the alignment guides. */
   .affil-logos.show-grid img { outline: 1px dashed #e11d48; }
 
