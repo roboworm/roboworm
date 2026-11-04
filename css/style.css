@@ -150,18 +150,18 @@
      The height shrinks with the container so the widest row
      (NUS, Stanford, Stuttgart: aspect sum ~11.8) always fits. */
   .affil-logos {
-    --gap-x: 2rem;
+    --gap-x: 1.25rem;
     container-type: inline-size;
     display: flex;
     flex-direction: column;
-    gap: 1.1rem;
-    margin-top: .95rem;
-    padding-top: 1.1rem;
+    gap: 1.4rem;
+    margin-top: 1.1rem;
+    padding-top: 1.4rem;
     border-top: 1px solid var(--line);
   }
   .logo-row { display: flex; justify-content: center; align-items: center; gap: var(--gap-x); }
   .logo-row img {
-    height: min(34px, calc((100cqw - 2 * var(--gap-x)) / 11.8));
+    height: min(46px, calc((100cqw - 2 * var(--gap-x)) / 11.8));
     width: auto;
     max-width: none;
   }
@@ -169,7 +169,7 @@
   .affil-logos.show-grid img { outline: 1px dashed #e11d48; }
 
   @media (max-width: 700px) {
-    .affil-logos { --gap-x: 1.1rem; gap: .85rem; }
+    .affil-logos { --gap-x: .9rem; gap: 1rem; }
   }
   .thesis { margin-top: 1.2rem; font-size: 1.22rem; line-height: 1.5; max-width: 34rem; color: var(--ink); }
   .thesis em { font-style: italic; color: var(--audit); }
