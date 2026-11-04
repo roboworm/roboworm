@@ -1,6 +1,9 @@
 /* Shared helpers: review-style line numbers, lightbox, tooltips, small math. */
 (function () {
   const U = (window.RW = window.RW || {});
+  // ?grid draws the logo-wall alignment guides
+  if (new URLSearchParams(location.search).has("grid"))
+    document.addEventListener("DOMContentLoaded", () => document.querySelector(".affil-logos")?.classList.add("show-grid"));
   U.debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
   U.median = a => { const s = a.slice().sort((x, y) => x - y), n = s.length; return n ? (s[(n - 1) >> 1] + s[n >> 1]) / 2 : 0; };
   U.ticks = (lo, hi, n) => {
