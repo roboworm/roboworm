@@ -145,43 +145,32 @@
     white-space: pre;
   }
   
-  /* Logo wall: 4 equal columns read left to right, row by row. Logos are
-     trimmed to their ink box and share one height, centred on each cell's
-     axes. --s nudges logos with thin or multi-line text that look small at
-     equal height; very wide logos shrink to fit their cell. */
   .affil-logos {
-    --h: 46px;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    justify-items: center;
-    align-items: center;
-    gap: 1.5rem 1.75rem;
-    margin-top: 1.2rem;
-    padding-top: 1.4rem;
+    margin-top: .95rem;
+    padding-top: .85rem;
     border-top: 1px solid var(--line);
   }
   .affil-logos img {
-    height: calc(var(--h) * var(--s, 1));
-    width: auto;
-    max-width: 100%;
-    object-fit: contain;
+    display: block;
+    width: 100%;
+    max-width: 54rem;
+    height: auto;
   }
-  @media (max-width: 900px) { .affil-logos { --h: 38px; gap: 1.2rem 1.25rem; } }
-  @media (max-width: 560px) { .affil-logos { --h: 28px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; } }
-  /* Append ?grid to the URL to draw the alignment guides. */
-  .affil-logos.show-grid img { outline: 1px dashed #e11d48; }
 
   .thesis { margin-top: 1.2rem; font-size: 1.22rem; line-height: 1.5; max-width: 34rem; color: var(--ink); }
   .thesis em { font-style: italic; color: var(--audit); }
   .venue {
     --wm-accent: #1f8a5b;
-    margin: 1.1rem 0 0; max-width: 48rem;
+    margin: 1.1rem 0 0;
+    width: fit-content;
+    max-width: 100%;
     padding: .75rem 1rem .75rem 1.05rem;
     font: 500 .95rem/1.55 var(--f-body); color: var(--ink);
     background: color-mix(in srgb, var(--wm-accent) 8%, #fff);
     border: 1px solid color-mix(in srgb, var(--wm-accent) 35%, transparent);
     border-left: 4px solid var(--wm-accent);
     border-radius: 0 10px 10px 0;
+    white-space: nowrap;
   }
   .venue b { color: var(--wm-accent); font-weight: 700; }
   .venue-meta { color: var(--ink-2); font-weight: 500; }
@@ -202,9 +191,6 @@
   .workshop-title .wt-accent i { font-style: italic; font-weight: 600; }
   .workshop-title:hover .wt-lead { color: var(--wm-ink); }
   .workshop-title:hover .wt-accent { color: #166a46; text-decoration: underline; text-underline-offset: 3px; }
-  @media (max-width: 560px) {
-    .workshop-title { white-space: normal; }
-  }
   .btns { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1.1rem; }
   .btn {
     display: inline-flex; align-items: center; gap: .45rem; font: 500 .9rem/1 var(--f-ui);
